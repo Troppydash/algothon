@@ -11,13 +11,64 @@ import pandas as pd
 currentPos = np.zeros(50)
 limit = 10000
 
-
+maxPrices = {
+    0 :  15.56 ,
+    1 :  75.15 ,
+    2 :  48.61 ,
+    3 :  51.01 ,
+    4 :  59.12 ,
+    5 :  13.0 ,
+    6 :  18.98 ,
+    7 :  51.09 ,
+    8 :  69.99 ,
+    9 :  59.1 ,
+    10 :  40.64 ,
+    11 :  33.53 ,
+    12 :  27.61 ,
+    13 :  51.42 ,
+    14 :  16.98 ,
+    15 :  27.23 ,
+    16 :  36.24 ,
+    17 :  46.13 ,
+    18 :  14.75 ,
+    19 :  35.47 ,
+    20 :  73.68 ,
+    21 :  23.34 ,
+    22 :  72.21 ,
+    23 :  32.77 ,
+    24 :  64.97 ,
+    25 :  71.09 ,
+    26 :  69.19 ,
+    27 :  29.96 ,
+    28 :  52.11 ,
+    29 :  32.61 ,
+    30 :  15.35 ,
+    31 :  70.85 ,
+    32 :  59.12 ,
+    33 :  48.98 ,
+    34 :  28.55 ,
+    35 :  82.12 ,
+    36 :  43.11 ,
+    37 :  42.23 ,
+    38 :  22.05 ,
+    39 :  49.71 ,
+    40 :  33.26 ,
+    41 :  77.47 ,
+    42 :  14.5 ,
+    43 :  66.09 ,
+    44 :  39.13 ,
+    45 :  54.15 ,
+    46 :  66.6 ,
+    47 :  36.48 ,
+    48 :  50.02 ,
+    49 :  59.31
+}
 
 def getUnitTradeVolume(prices, share1, share2, trade1, trade2):
     global limit
 
-    price1 = prices[-1][share1]
-    price2 = prices[-1][share2]
+    price1 = prices[share2][-1]
+    price2 = prices[share1][-1]
 
     # Get available volume
     vol1 = limit/ price1
@@ -31,7 +82,7 @@ last = defaultdict(lambda: 0)
 def better_pair(prices, share1, share2, beta, lower, middle, upper, trade1, trade2):
     global last, currentPos
     
-    delta = prices[-1][share1] - beta * prices[-1][share2]
+    delta = prices[share1][-1] - beta * prices[share2][-1]
     unitTrade = getUnitTradeVolume(prices, share1, share2, trade1, trade2)
     volume1 = unitTrade * trade1
     volume2 = unitTrade * trade2
