@@ -10,7 +10,7 @@ import pandas as pd
 
 currentPos = np.zeros(50)
 limit = 10000
-
+SCALER = 1.5
 maxPrices = {
     0 :  15.56 ,
     1 :  75.15 ,
@@ -75,7 +75,7 @@ def getUnitTradeVolume(prices, share1, share2, trade1, trade2):
     vol2 = limit/ price2
 
     unitTrade = min(vol1/trade1, vol2/trade2)
-    return unitTrade
+    return unitTrade * SCALER
 
 
 last = defaultdict(lambda: 0)
@@ -94,8 +94,8 @@ def better_pair(prices, share1, share2, beta, lower, middle, upper, trade1, trad
     
     if last[share1,share2] < 0 and delta > middle or last[share1,share2] > 0 and delta < middle:
         last[share1, share2] = 0
-        currentPos[share1] = 0
-        currentPos[share2] = 0
+        currentPos[share1] //= 3
+        currentPos[share2] //= 3
 
     if delta > upper and last[share1,share2] != 1:
         last[share1,share2] = 1
