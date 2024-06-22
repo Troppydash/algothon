@@ -1,3 +1,61 @@
+# Group algorithm:
+# Idea so far:
+1. ARIMA: Try arima on potential AR/MA mostly :D
+2. Pair trading: Group using cointegration and trade using Min Profit Optimization
+3. Pair trading: Lead/ lag
+
+1:
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20:
+21:
+22:
+23:
+24:
+25:
+26:
+27:
+28:
+29:
+30:
+31:
+32:
+33:
+34:
+35:
+36:
+37:
+38:
+39:
+40:
+41:
+42:
+43:
+44:
+45:
+46:
+47:
+48:
+49:
+50:
+
+
 # Brief
 
 Make the best trading algorithm!
