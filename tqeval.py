@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-from teamName import getMyPosition as getPosition
+from tq import getMyPosition as getPosition
 
 nInst = 0
 nt = 0
@@ -51,8 +51,8 @@ def calcPL(prcHist):
         ret = 0.0
         if (totDVolume > 0):
             ret = value / totDVolume
-        print("Day %d value: %.2lf todayPL: $%.2lf $-traded: %.0lf return: %.5lf" %
-              (t, value, todayPL, totDVolume, ret))
+        # print("Day %d value: %.2lf todayPL: $%.2lf $-traded: %.0lf return: %.5lf" %
+        #       (t, value, todayPL, totDVolume, ret))
     pll = np.array(todayPLL)
     (plmu, plstd) = (np.mean(pll), np.std(pll))
     annSharpe = 0.0
