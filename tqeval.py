@@ -21,6 +21,9 @@ pricesFile = "./prices.txt"
 prcAll = loadPrices(pricesFile)
 print("Loaded %d instruments for %d days" % (nInst, nt))
 
+start = np.random.randint(1, 250)
+start = 11
+
 
 def calcPL(prcHist):
     cash = 0
@@ -31,7 +34,7 @@ def calcPL(prcHist):
     value = 0
     todayPLL = []
     (_, nt) = prcHist.shape
-    for t in range(250, 501):
+    for t in range(start, start+251):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]
@@ -64,6 +67,7 @@ def calcPL(prcHist):
 (meanpl, ret, plstd, sharpe, dvol) = calcPL(prcAll)
 score = meanpl - 0.1*plstd
 print("=====")
+print(f'start {start}')
 print("mean(PL): %.1lf" % meanpl)
 print("return: %.5lf" % ret)
 print("StdDev(PL): %.2lf" % plstd)
