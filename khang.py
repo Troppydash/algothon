@@ -3,6 +3,8 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
+import statsmodels.api as sm
+
 ##### TODO #########################################
 ### RENAME THIS FILE TO YOUR TEAM NAME #############
 ### IMPLEMENT 'getMyPosition' FUNCTION #############
@@ -67,9 +69,9 @@ maxPrices = {
 def setVolume(newVolume, price):
     global limit
     if newVolume > 0:
-        return min(limit//price, newVolume)
+        return int(min(limit//price, newVolume))
     else:
-        return max(-limit//price, newVolume)
+        return int(max(-limit//price, newVolume))
 
 def getUnitTradeVolume(prices, share1, share2, trade1, trade2):
     global limit
@@ -111,34 +113,76 @@ def better_pair(prices, share1, share2, beta, lower, middle, upper, trade1, trad
 
 
 # Ticker 8
+# Doesn't work for some reason
+
+error = 0
+prePred = -10
+first = True
+model8 = sm.load("model8.pickle")
+
 def linreg8(prices):
-    global currentPos
-    next8 = 68.6726 + 1.0926 * (prices[8][-1] - 68.6726) + -0.1079 * (prices[8][-2] - 68.6726)
-    price8 = prices[8][-1]
-
-    print(next8 - price8)
-    print(next8)
-    print(price8)
+    if (len(prices[8]) <= 4):
+        return
     
-    if next8 - price8 > 0.6:
-        currentPos[8] = setVolume(currentPos[8] - 10000, price8)
-    elif next8 - price8 < -0.6:
-        currentPos[8] = setVolume(currentPos[8] + 10000, price8)
+    global currentPos, error, prePred, first
 
+    price8 = prices[8]
+
+    priceMean = 68.537300
+    priceChangeMean = -0.0008617234468937727
+    priceChangeStd = 0.10007741951924473
+
+    applied8 = model8.apply(price8[-20:] - priceMean)
+    nextPrice8 = applied8.forecast(3)[2] + priceMean
+    
+    print(nextPrice8)
+    print(price8[-1])
+
+    if nextPrice8 - price8[-1] > 0.01:
+        currentPos[8] = setVolume(-limit, price8[-1])
+    elif nextPrice8 - price8[-1] < -0.01:
+        currentPos[8] = setVolume(limit, price8[-1])
+
+# Try moving average
+
+# Very simple mean reversion
 def meanRevert8(prices):
-    global currentPos
+    global currentPos, limit
 
-    price8 = prices[8][-1]
+    print(currentPos[8])
+    if (len(prices[8]) <= 4):
+        return
 
-    if price8 >= 69:
-        currentPos[8] = setVolume(-100000, price8)
-    elif price8 <= 68:
-        currentPos[8] = setVolume(100000, price8)
+    price8 = prices[8]
+    priceStd = 0.585843
+    priceMean = 68.537300
+
+    diff = price8[-1] - priceMean
+    upper = 1 * priceStd
+    # mid = upper/2
+
+    limitVol = 2 * limit/price8[-1]
+    
+    # Sell when above mean
+    if diff >= upper:
+        currentPos[8] = setVolume(-limitVol, price8[-1])
+        return
+    # elif diff >= mid:
+    #     currentPos[8] = setVolume(currentPos[8] - limitVol * (diff - mid)/(upper - mid), price8[-1])
+    #     return
+    
+    # Buy when below mean
+    if diff <= -upper:
+        currentPos[8] = setVolume(limitVol, price8[-1])
+        return
+    # elif diff <= -mid:
+    #     currentPos[8] = setVolume(currentPos[8] + limitVol * (-diff - mid)/(upper - mid), price8[-1])
+    #     return
 
 def getMyPosition(prices):
     global currentPos
     nins, nt = prices.shape
-    if nt < 4:
+    if nt < 2:
         return np.zeros(nins)
 
     # Terry's part
