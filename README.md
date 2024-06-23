@@ -4,7 +4,7 @@
 2. Pair trading: Group using cointegration and trade using Min Profit Optimization
 3. Pair trading: Lead/ lag
 
-1:
+1: Pair with 10?
 
 2:
 
@@ -13,51 +13,84 @@
 4:
 5:
 6:
-7:
-8:
+
+7: Pair with 19
+
+8: Mean Reversion
+
 9:
-10:
+
+10: Pair with 1?
 
 11: Pair with 42
 
-12:
-13:
-14:
+12: Pair with 34 (and 25?)
+
+13: Pair with 39
+
+14: Pair with 30
+
 15:
 16:
 17:
 18:
-19:
+
+19: Pair with 7
+
 20:
 21:
-22:
+
+22: Pair with 24
+
 23:
-24:
-25:
+
+24: Pair with 22
+
+25: Pair with 12
+
 26:
 27:
-28:
+
+28: Pair with 41
+
 29:
-30:
+
+30: Pair with 14
+
 31:
 32:
 33:
-34:
+
+34: Pair with 12 
+
 35:
 36:
 37:
 38:
-39:
+
+39: Pair with 13
+
 40:
-41:
-42:
-43:
+
+41: Pair with 28
+
+42: Pair with 11
+
+43: Pair with 49
+
 44:
+
 45:
+
 46:
+
+
 47:
-48:
-49:
+
+48: Pair with 7
+
+49: Pair with 43
+
 50:
 
 
