@@ -38,136 +38,6 @@ def clamp(value, lower, upper):
     return value
 
 
-#
-#
-# OUT = 'out'
-# IN = 'in'
-
-#
-# class MeanReversion:
-#
-#     def __init__(self, spread=80.0, c=0.05, mean=5000, limit=20):
-#         self.mean = mean
-#         self.spread = spread
-#         self.limit = limit
-#         self.c = c
-#         self.state = OUT
-#
-#     def outwards(self, x):
-#         if x == 0:
-#             return 0
-#
-#         if x > 0:
-#             return -(x ** self.c)
-#
-#         return (-x) ** self.c
-#
-#     def inwards(self, x):
-#         if x == 0:
-#             return 0
-#
-#         if x > 0:
-#             return -(x ** (1 / self.c))
-#
-#         return (-x) ** (1 / self.c)
-#
-#     def create_spread(self, new_price, old_price, pos) -> int:
-#         mean = self.mean
-#
-#         outw = int(self.limit * self.outwards((new_price - mean) / self.spread))
-#         inw = int(self.limit * self.inwards((new_price - mean) / self.spread))
-#
-#         if old_price - mean > 0 and new_price - mean < 0:
-#             self.state = OUT
-#         if old_price - mean < 0 and new_price - mean > 0:
-#             self.state = OUT
-#
-#         if new_price - mean > 0:
-#             # we are positive delta
-#
-#             if new_price > old_price:
-#                 # we more positive
-#
-#                 if self.state == OUT:
-#                     return outw
-#                 else:
-#                     # check if we've reached it
-#                     if outw < pos:
-#                         self.state = OUT
-#                         return outw
-#                     else:
-#                         return pos
-#             else:
-#                 # we more negative
-#                 if self.state == IN:
-#                     return inw
-#                 else:
-#                     # check if we've reached it
-#                     if inw > pos:
-#                         self.state = IN
-#                         return inw
-#                     else:
-#                         return pos
-#
-#         else:
-#             # we are negative delta
-#
-#             if new_price < old_price:
-#                 # if more negative
-#
-#                 if self.state == OUT:
-#                     return outw
-#                 else:
-#                     if outw > pos:
-#                         self.state = OUT
-#                         return outw
-#                     else:
-#                         return pos
-#             else:
-#                 # if more positive
-#
-#                 if self.state == IN:
-#                     return inw
-#                 else:
-#                     if inw < pos:
-#                         self.state = IN
-#                         return inw
-#                     return pos
-#
-#
-# def pair_trade_log(df, t1, t2, mean, sd, clamp_z, z, v):
-#     spread = np.log(df[t1].values[-1]) - np.log(df[t2].values[-1])
-#     norm = (spread - mean) / sd
-#     if abs(norm) < clamp_z:
-#         return
-#
-#     # exp = clamp(norm / z, -1, 1) * v
-#     # currentPos[t1] = set_value(df, t1, -exp)
-#     # currentPos[t2] = set_value(df, t2, exp)
-#     exp = clamp(norm / z, -1, 1) * 170
-#     v1, v2 = set_volume(df, t1, -exp), set_volume(df, t2, exp)
-#     vmin = min(abs(v1), abs(v2))
-#     currentPos[t1] = vmin * np.sign(v1)
-#     currentPos[t2] = vmin * np.sign(v2)
-
-
-# m = 0.75567
-# sd = 0.03896
-# mr = MeanReversion(spread=2.2*sd, mean=m, limit=600, c=3)
-
-# m = 0.03865
-# sd = 0.005758
-# mr2 = MeanReversion(spread=1.5*sd, mean=m, limit=300, c=3)
-#
-# def another_pair(df, mr, t1, t2):
-#     delta = np.log(df[t1].values[-1]) - np.log(df[t2].values[-1])
-#     prev = np.log(df[t1].values[-2]) - np.log(df[t2].values[-2])
-#     p = currentPos[t1] - currentPos[t2]
-#     pos = mr.create_spread(delta, prev, p)
-#     currentPos[t1] = pos // 2
-#     currentPos[t2] = -(pos // 2)
-
-
 last = defaultdict(lambda: 0)
 
 
@@ -183,14 +53,30 @@ def better_pair(df, t1, t2, beta, lower, middle, upper, s1, s2, v1, v2, scaler: 
     #
     if last[t1, t2] < 0 and delta >= middle or last[t1, t2] > 0 and delta <= middle:
         last[t1, t2] = 0
-        currentPos[t1] = currentPos[t1] // 2
-        currentPos[t2] = currentPos[t2] // 2
+        currentPos[t1] = currentPos[t1] // 1.5
+        currentPos[t2] = currentPos[t2] // 1.5
 
     if delta > upper and last[t1, t2] != 1:
         last[t1, t2] = 1
         currentPos[t1] = -int(s1 * v1 * scaler)
         currentPos[t2] = int(s2 * v2 * scaler)
 
+def better_one(df, t1, lower, middle, upper, s1, v1, scaler: float = 1.1):
+    global last
+
+    delta = df[t1].values[-1]
+
+    if delta < lower and last[t1, -1] != -1:
+        last[t1, -1] = -1
+        currentPos[t1] = int(s1 * v1 * scaler)
+    #
+    if last[t1, -1] < 0 and delta >= middle or last[t1, -1] > 0 and delta <= middle:
+        last[t1, -1] = 0
+        currentPos[t1] = currentPos[t1] // 1.5
+
+    if delta > upper and last[t1, -1] != 1:
+        last[t1, -1] = 1
+        currentPos[t1] = -int(s1 * v1 * scaler)
 
 def regularize(df):
     for i in range(50):
@@ -199,30 +85,6 @@ def regularize(df):
             currentPos[i] = int(10000 / val)
         if pos * val < -10000:
             currentPos[i] = int(-10000 / val)
-
-
-#
-# def best_pair(df, weights, ts, lower, middle, upper):
-#     global net
-#
-#     delta = 0
-#     for w, t in zip(weights, ts):
-#         delta += w * df[t].values[-1]
-#
-#     if delta < lower and net != -1:
-#         net = -1
-#         for w, t in zip(weights, ts):
-#             currentPos[t] = int(100 * w)
-#
-#     if net == -1 and delta > middle or net == 1 and delta < middle:
-#         net = 0
-#         for w, t in zip(weights,ts):
-#             currentPos[t] = 0
-#
-#     if delta > upper and net != 1:
-#         net = 1
-#         for w, t in zip(weights, ts):
-#             currentPos[t] = int(-100 * w)
 
 
 def getMyPosition(prices):
@@ -243,6 +105,8 @@ def getMyPosition(prices):
     better_pair(df, 14, 30, 0.7192064351085297, 4.86640231, 5.15640231, 5.44640231, 6, 4, 98, 162)
     better_pair(df, 22, 24, 3.4117759223360125, -149.87702011, -148.68702011, -147.49702011, 8, 27, 17, 5)
     better_pair(df, 28, 41, 0.021148, 49.6408878, 49.8208878, 50.0008878, 48, 1, 3, 129)
+    # better_pair(df, 28, 22, -0.01673747164511675, 51.97592067872665, 52.16592067872665, 52.35592067872665,
+    #             60.0, 1.0, 3.198362438431523, 138.48497438027974)
     better_pair(df, 7, 19, 0.3973201339866572, 33.5724356, 34.1524356, 34.7324356, 13, 5, 15, 56)
     better_pair(df, 43, 49, 0.2046650849773665, 47.71489042555398, 48.64489042555398, 49.57489042555398, 10.0,
                 2.0, 15.130882130428203, 84.30281571404484)
@@ -254,6 +118,8 @@ def getMyPosition(prices):
                 16.0, 1.0, 22.63672582397682, 140.66676044450696)
     better_pair(df, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299, 39.807363604822996, 12.0,
                 2.0, 16.311085013375088, 99.96001599360255)
+
+    # better_one(df, 8, 68.08943333, 68.26943333, 68.44943333, 1, 10000 // 90)
 
     # 20,25 done
     # 21,34

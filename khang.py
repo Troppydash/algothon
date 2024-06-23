@@ -145,6 +145,7 @@ def linreg8(prices):
 
 # Try moving average
 
+
 # Very simple mean reversion
 def meanRevert8(prices):
     global currentPos, limit
