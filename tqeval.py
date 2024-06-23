@@ -22,7 +22,7 @@ prcAll = loadPrices(pricesFile)
 print("Loaded %d instruments for %d days" % (nInst, nt))
 
 start = np.random.randint(1, 250)
-start = 11
+start = 250
 
 
 def calcPL(prcHist):
