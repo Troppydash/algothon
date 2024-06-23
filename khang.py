@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-import statsmodels.api as sm
+# import statsmodels.api as sm
 
 ##### TODO #########################################
 ### RENAME THIS FILE TO YOUR TEAM NAME #############
@@ -118,13 +118,16 @@ def better_pair(prices, share1, share2, beta, lower, middle, upper, trade1, trad
 error = 0
 prePred = -10
 first = True
-model8 = sm.load("model8.pickle")
+model8 = None
 
 def linreg8(prices):
     if (len(prices[8]) <= 4):
         return
     
     global currentPos, error, prePred, first
+
+    if (model8 == None):
+        model8 = sm.load("model8.pickle")
 
     price8 = prices[8]
 
@@ -144,7 +147,24 @@ def linreg8(prices):
         currentPos[8] = setVolume(limit, price8[-1])
 
 # Try moving average
+def movingAvg(prices):
+    price8 = prices[8]
+    
+    if len(price8) < 20:
+        return
+    
+    mavg20 = sum(price8[-20:]) / 20
+    mavg5 = sum(price8[-5:]) / 5
 
+    limitVol = 2 * limit/price8[-1]
+
+    if (mavg5 > mavg20):
+        currentPos[8] = setVolume(limitVol, price8[-1])
+        return
+    
+    elif (mavg5 < mavg20):
+        currentPos[8] = setVolume(-limitVol, price8[-1])
+        return
 
 # Very simple mean reversion
 def meanRevert8(prices):
@@ -199,6 +219,6 @@ def getMyPosition(prices):
     # better_pair(prices, 12, 25, -0.06366267571277003, 29.863092873692395, 29.983092873692396, 30.103092873692397, 16.0, 1.0)
     # better_pair(prices, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299, 39.807363604822996, 12.0, 2.0)
     
-    linreg8(prices)
+    movingAvg(prices)
 
     return currentPos
