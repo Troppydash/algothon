@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-# import statsmodels.api as sm
+import statsmodels.api as sm
 
 ##### TODO #########################################
 ### RENAME THIS FILE TO YOUR TEAM NAME #############
@@ -13,6 +13,8 @@ import pandas as pd
 currentPos = np.zeros(50)
 limit = 10000
 SCALER = 20
+INF = 1000000000
+commRate = 0.0010
 maxPrices = {
     0 :  15.56 ,
     1 :  75.15 ,
@@ -147,26 +149,53 @@ def linreg8(prices):
         currentPos[8] = setVolume(limit, price8[-1])
 
 # Try moving average
+preTrend = 0
 def movingAvg(prices):
+    global currentPos, limit, preTrend
+
+    # print(currentPos[8])
+
     price8 = prices[8]
-    
-    if len(price8) < 20:
+    priceStd = 0.585843
+    priceMean = 68.537300
+
+    # Check for extremes (outside 1.5 std)
+    upper = priceMean + 1.5 * priceStd
+    if (price8[-1] > upper):
+        currentPos[8] = setVolume(-INF, price8[-1])
         return
-    
+    elif (price8[-1] < -upper):
+        currentPos[8] = setVolume(INF, price8[-1])
+        return
+
+    # Find trend signal by checking moving average cross-over
+    if (len(prices[8]) <= 40):
+        return
+    mavg40 = sum(price8[-40:]) / 40
     mavg20 = sum(price8[-20:]) / 20
-    mavg5 = sum(price8[-5:]) / 5
 
-    limitVol = 2 * limit/price8[-1]
-
-    if (mavg5 > mavg20):
-        currentPos[8] = setVolume(limitVol, price8[-1])
-        return
+    trend = 1 if mavg20 > mavg40 else -1
+    # print("Trend: ", trend, preTrend)
     
-    elif (mavg5 < mavg20):
-        currentPos[8] = setVolume(-limitVol, price8[-1])
-        return
+    # If the 2 extremes above doesn't work, then buy/sell everything
+    # when there is a change in trend
+    if (trend == 1 and preTrend in (-1, 0) and price8[-1] < priceMean):
+        currentPos[8] = setVolume(INF, price8[-1])
+    elif (trend == -1 and preTrend in (1, 0) and price8[-1] > priceMean):
+        currentPos[8] = setVolume(-INF, price8[-1])
+    # Update preTrend
+    preTrend = trend
+    
+
+    # Revert everything in the last timestamp
+    if (len(price8) == 250):
+        print("Revert. Price: ", price8[-1])
+        print("Price: ", price8[-1], "for", currentPos[8])
+        print("Value:", price8[-1] * currentPos[8])
+    
 
 # Very simple mean reversion
+# PL: 2, std: 14.97, score: 0.47
 def meanRevert8(prices):
     global currentPos, limit
 
@@ -179,8 +208,8 @@ def meanRevert8(prices):
     priceMean = 68.537300
 
     diff = price8[-1] - priceMean
-    upper = 1 * priceStd
-    # mid = upper/2
+    upper = 1.5 * priceStd
+    mid = upper/2
 
     limitVol = 2 * limit/price8[-1]
     
@@ -188,17 +217,19 @@ def meanRevert8(prices):
     if diff >= upper:
         currentPos[8] = setVolume(-limitVol, price8[-1])
         return
-    # elif diff >= mid:
-    #     currentPos[8] = setVolume(currentPos[8] - limitVol * (diff - mid)/(upper - mid), price8[-1])
-    #     return
+    elif diff >= mid:
+        currentPos[8] = setVolume(currentPos[8] - limitVol * (diff - mid)/(upper - mid), price8[-1])
+        return
     
     # Buy when below mean
     if diff <= -upper:
         currentPos[8] = setVolume(limitVol, price8[-1])
         return
-    # elif diff <= -mid:
-    #     currentPos[8] = setVolume(currentPos[8] + limitVol * (-diff - mid)/(upper - mid), price8[-1])
-    #     return
+    elif diff <= -mid:
+        currentPos[8] = setVolume(currentPos[8] + limitVol * (-diff - mid)/(upper - mid), price8[-1])
+        return
+
+
 
 def getMyPosition(prices):
     global currentPos
@@ -219,6 +250,6 @@ def getMyPosition(prices):
     # better_pair(prices, 12, 25, -0.06366267571277003, 29.863092873692395, 29.983092873692396, 30.103092873692397, 16.0, 1.0)
     # better_pair(prices, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299, 39.807363604822996, 12.0, 2.0)
     
-    movingAvg(prices)
+    meanRevert8(prices)
 
     return currentPos
