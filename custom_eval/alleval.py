@@ -64,7 +64,7 @@ def all_eval(getPosition):
     scores = []
 
     for i in range(1, 251):
-        print("Start at: ", i)
+        # print("Start at: ", i)
         (meanpl, ret, plstd, sharpe, dvol) = calcPL(getPosition, i, prcAll)
         score = meanpl - 0.1*plstd
         
@@ -72,13 +72,13 @@ def all_eval(getPosition):
         plstds.append(plstd)
         scores.append(score)
 
-        print("=====")
-        print("mean(PL): %.1lf" % meanpl)
-        print("return: %.5lf" % ret)
-        print("StdDev(PL): %.2lf" % plstd)
-        print("annSharpe(PL): %.2lf " % sharpe)
-        print("totDvolume: %.0lf " % dvol)
-        print("Score: %.2lf" % score)
+        # print("=====")
+        # print("mean(PL): %.1lf" % meanpl)
+        # print("return: %.5lf" % ret)
+        # print("StdDev(PL): %.2lf" % plstd)
+        # print("annSharpe(PL): %.2lf " % sharpe)
+        # print("totDvolume: %.0lf " % dvol)
+        # print("Score: %.2lf" % score)
     
     print("Summary: ")
     print("Mean: ")
