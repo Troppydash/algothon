@@ -3,20 +3,17 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-limit = 10000
-SCALER = 5
-INF = 1000000000
-commRate = 0.0010
+from util.constants import LIMIT, COMM_RATE, INF
+
+SCALER = 2
 
 def getUnitTradeVolume(prices, share1, share2, trade1, trade2):
-    global limit
-
     price1 = prices[share2][-1]
     price2 = prices[share1][-1]
 
     # Get available volume
-    vol1 = limit/ price1
-    vol2 = limit/ price2
+    vol1 = LIMIT/ price1
+    vol2 = LIMIT/ price2
 
     unitTrade = min(vol1/trade1, vol2/trade2)
     return unitTrade * SCALER
@@ -39,8 +36,8 @@ def better_pair(prices, share1, share2, beta, lower, middle, upper, trade1, trad
     
     if better_pair__last[share1, share2] < 0 and delta >= middle or better_pair__last[share1, share2] > 0 and delta <= middle:
         better_pair__last[share1, share2] = 0
-        better_pair__amount[f"{share1}-{share2}-1"] = (share1, int(better_pair__amount[f"{share1}-{share2}-1"][1] // 3))
-        better_pair__amount[f"{share1}-{share2}-2"] = (share2, int(better_pair__amount[f"{share1}-{share2}-2"][1] // 3))
+        better_pair__amount[f"{share1}-{share2}-1"] = (share1, int(better_pair__amount[f"{share1}-{share2}-1"][1] // 1.5))
+        better_pair__amount[f"{share1}-{share2}-2"] = (share2, int(better_pair__amount[f"{share1}-{share2}-2"][1] // 1.5))
 
     if delta > upper and better_pair__last[share1, share2] != 1:
         better_pair__last[share1, share2] = 1

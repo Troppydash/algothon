@@ -7,7 +7,7 @@ from pair_trading.pair_trading_max_vol import better_pair, better_pair_aggregate
 from single_series.mean_revert import meanRevert
 
 from util.util import setVolume
-from util.constants import LIMIT, SCALER, INF, COMM_RATE
+from util.constants import LIMIT, INF, COMM_RATE
 
 ##### TODO #########################################
 ### RENAME THIS FILE TO YOUR TEAM NAME #############
