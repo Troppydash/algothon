@@ -3,7 +3,70 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-import copulas as cop
+if False:
+    from arbitragelab.copula_approach import fit_copula_to_empirical_data
+    from arbitragelab.copula_approach.elliptical import GaussianCopula
+    from arbitragelab.trading import BasicCopulaTradingRule
+
+
+# test_t1 = 7
+# test_t2 = 19
+
+# fitting
+def fitting(test_t1, test_t2):
+    df = pd.read_csv("./prices.txt", sep='\s+', header=None, index_col=None)
+    df.index = np.arange(df.shape[0])
+    df.rename(columns=lambda c: str(c), inplace=True)
+
+    train = df.iloc[:300, :]
+
+    cop_trading = BasicCopulaTradingRule(exit_rule='or', open_probabilities=(0.15, 0.85),
+                                      exit_probabilities=(0.5, 0.5))
+
+    # Split data into train and test sets
+
+    # Fitting copula to data and getting cdf for X and Y series
+    info_crit, fit_copula, ecdf_x, ecdf_y = fit_copula_to_empirical_data(x=train[str(test_t1)],
+                                                                         y=train[str(test_t2)],
+                                                                         copula=GaussianCopula)
+
+    # Setting initial probabilities
+    cop_trading.current_probabilities = (0.5, 0.5)
+    cop_trading.prev_probabilities = (0.5, 0.5)
+
+    # Adding copula to strategy
+    cop_trading.set_copula(fit_copula)
+
+    # Adding cdf for X and Y to strategy
+    cop_trading.set_cdf(ecdf_x, ecdf_y)
+
+    return cop_trading
+
+def copula(df, test_t1, test_t2, trading, p1 =  0.43, p2 = -0.56, num = 450, sp = 1.5):
+    trading.update_probabilities(df[test_t1].values[-1], df[test_t2].values[-1])
+
+    trade, side = trading.check_entry_signal()
+    result = trading.update_trades(update_timestamp=pd.Timestamp(iter))
+    for i in result:
+        # print(f'closing {i}')
+        amount[f"copula-1-{test_t1}-{test_t2}-{i}"] = (test_t1, 0)
+        amount[f"copula-2-{test_t1}-{test_t2}-{i}"] = (test_t2, 0)
+
+    if trade:
+        total = aggregate()
+        NUM = num
+        # power1 = (NUM - abs(total[test_t1])) / sp
+        power1 = NUM/15
+        power2 = NUM/15
+        # power2 = (NUM - abs(total[test_t2])) / sp
+        amount[f"copula-1-{test_t1}-{test_t2}-{iter}"] = (test_t1, int(side * power1 * p1))
+        amount[f"copula-2-{test_t1}-{test_t2}-{iter}"] = (test_t2, int(side * power2 * -p2))
+        # print(f'opening {iter}')
+        trading.add_trade(start_timestamp=pd.Timestamp(iter), side_prediction=side, uuid=iter)
+
+
+
+
 
 ##### TODO #########################################
 ### RENAME THIS FILE TO YOUR TEAM NAME #############
@@ -100,8 +163,18 @@ def aggregate():
     return currentPos
 
 
+if False:
+    trading = fitting(7, 19)
+    trading2 = fitting(11, 34)
+    trading3 = fitting(18, 36)
+    trading4 = fitting(3, 36)
+iter = 0
+
 def getMyPosition(prices):
-    global currentPos
+    global currentPos, iter
+
+    iter += 1
+
     nins, nt = prices.shape
     if nt < 2:
         return np.zeros(nins)
@@ -112,27 +185,45 @@ def getMyPosition(prices):
     # best_pair(df, weights, indices, 2.586489376879487, 2.6713907573920013, 2.7562921379045155)
 
     used = [11, 42, 14, 30, 22, 24, 28, 41, 7, 19, 43, 49, 13, 39, 12, 34, 12, 25, 7, 48]
-    better_pair(df, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958, -8.603364425168959,
-                7.0, 8.0, 27.414535186555913, 25.145845906256287, 0.6)
-    better_pair(df, 11, 42, 2.81, -9.48586161, -8.89586161, -8.30586161, 8, 21, 37, 32)
-    better_pair(df, 14, 30, 0.7192064351085297, 4.86640231, 5.15640231, 5.44640231, 6, 4, 98, 162)
-    better_pair(df, 22, 24, 3.4117759223360125, -149.87702011, -148.68702011, -147.49702011, 8, 27, 17, 5)
-    better_pair(df, 28, 41, 0.021148, 49.6408878, 49.8208878, 50.0008878, 48, 1, 3, 129, 0.6)
-    # better_pair(df, 28, 22, -0.01673747164511675, 51.97592067872665, 52.16592067872665, 52.35592067872665,
-    #             60.0, 1.0, 3.198362438431523, 138.48497438027974)
-    better_pair(df, 7, 19, 0.3973201339866572, 33.5724356, 34.1524356, 34.7324356, 13, 5, 15, 56, 0.3)
-    better_pair(df, 43, 49, 0.2046650849773665, 47.71489042555398, 48.64489042555398, 49.57489042555398, 10.0,
-                2.0, 15.130882130428203, 84.30281571404484)
-    better_pair(df, 13, 39, -2.935182925012027, 193.2674924878151, 193.84749248781512, 194.42749248781513,
-                7.0, 19.0, 27.78240817914097, 10.587724592107909)
-    better_pair(df, 12, 34, 0.23829431834048995, 20.657766061851223, 20.757766061851225, 20.857766061851226,
-                9.0, 2.0, 40.24306813151435, 175.13134851138352, 0.6)
-    better_pair(df, 12, 25, -0.06366267571277003, 29.863092873692395, 29.983092873692396, 30.103092873692397,
-                16.0, 1.0, 22.63672582397682, 140.66676044450696, 0.6)
-    better_pair(df, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299, 39.807363604822996, 12.0,
-                2.0, 16.311085013375088, 99.96001599360255, 0.8)
 
-    # better_one(df, 8, 68.08943333, 68.26943333, 68.44943333, 1, 10000 // 80)
+    if True:
+        better_pair(df, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958,
+                    -8.603364425168959,
+                    7.0, 8.0, 27.414535186555913, 25.145845906256287, 0.6)
+        better_pair(df, 11, 42, 2.81, -9.48586161, -8.89586161, -8.30586161, 8, 21, 37, 32)
+        better_pair(df, 12, 34, 0.23829431834048995, 20.657766061851223, 20.757766061851225,
+                    20.857766061851226,
+                    9.0, 2.0, 40.24306813151435, 175.13134851138352, 0.6)
+        better_pair(df, 14, 30, 0.7192064351085297, 4.86640231, 5.15640231, 5.44640231, 6, 4, 98, 162)
+        better_pair(df, 22, 24, 3.4117759223360125, -149.87702011, -148.68702011, -147.49702011, 8, 27, 17, 5)
+        better_pair(df, 28, 41, 0.021148, 49.6408878, 49.8208878, 50.0008878, 48, 1, 3, 129, 0.6)
+        # better_pair(df, 28, 22, -0.01673747164511675, 51.97592067872665, 52.16592067872665, 52.35592067872665,
+        #             60.0, 1.0, 3.198362438431523, 138.48497438027974)
+        better_pair(df, 7, 19, 0.3973201339866572, 33.5724356, 34.1524356, 34.7324356, 13, 5, 15, 56, 0.3)
+        better_pair(df, 43, 49, 0.2046650849773665, 47.71489042555398, 48.64489042555398, 49.57489042555398,
+                    10.0,
+                    2.0, 15.130882130428203, 84.30281571404484)
+        better_pair(df, 13, 39, -2.935182925012027, 193.2674924878151, 193.84749248781512, 194.42749248781513,
+                    7.0, 19.0, 27.78240817914097, 10.587724592107909)
+
+        better_pair(df, 12, 25, -0.06366267571277003, 29.863092873692395, 29.983092873692396,
+                    30.103092873692397,
+                    16.0, 1.0, 22.63672582397682, 140.66676044450696, 0.6)
+        better_pair(df, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299, 39.807363604822996,
+                    12.0,
+                    2.0, 16.311085013375088, 99.96001599360255, 0.8)
+
+        # better_one(df, 8, 68.08943333, 68.26943333, 68.44943333, 1, 10000 // 80)
+
+
+    if False:
+        copula(df, 7, 19, trading, 0.43, 0.56, 400)
+        copula(df, 11, 34, trading2, 0.46, 0.53, 650)
+        copula(df, 18, 36, trading3, 1.83, -0.83, 200)
+        # copula(df, 12, 16, trading3, 0.59, 0.40, 550, 1.5)
+        # copula(df, 27, 47, trading4, 0.56, 0.44, 550)
+        # copula(df, 3, 36, trading4, 0.43, 0.56, 300)
+
 
     # 20,25 done
     # 21,34
