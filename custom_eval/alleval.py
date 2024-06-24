@@ -2,7 +2,6 @@
 
 import numpy as np
 import pandas as pd
-from khang import getMyPosition as getPosition
 
 nInst = 0
 nt = 0
@@ -17,12 +16,7 @@ def loadPrices(fn):
     return (df.values).T
 
 
-pricesFile = "./prices.txt"
-prcAll = loadPrices(pricesFile)
-print("Loaded %d instruments for %d days" % (nInst, nt))
-
-
-def calcPL(prcHist):
+def calcPL(getPosition, start, prcHist):
     cash = 0
     curPos = np.zeros(nInst)
     totDVolume = 0
@@ -31,7 +25,7 @@ def calcPL(prcHist):
     value = 0
     todayPLL = []
     (_, nt) = prcHist.shape
-    for t in range(250, 501):
+    for t in range(start, start + 251):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]
@@ -51,8 +45,8 @@ def calcPL(prcHist):
         ret = 0.0
         if (totDVolume > 0):
             ret = value / totDVolume
-        print("Day %d value: %.2lf todayPL: $%.2lf $-traded: %.0lf return: %.5lf" %
-              (t, value, todayPL, totDVolume, ret))
+        # print("Day %d value: %.2lf todayPL: $%.2lf $-traded: %.0lf return: %.5lf" %
+        #       (t, value, todayPL, totDVolume, ret))
     pll = np.array(todayPLL)
     (plmu, plstd) = (np.mean(pll), np.std(pll))
     annSharpe = 0.0
@@ -60,13 +54,36 @@ def calcPL(prcHist):
         annSharpe = np.sqrt(250) * plmu / plstd
     return (plmu, ret, plstd, annSharpe, totDVolume)
 
+def all_eval(getPosition):
+    pricesFile = "./prices.txt"
+    prcAll = loadPrices(pricesFile)
+    print("Loaded %d instruments for %d days" % (nInst, nt))
 
-(meanpl, ret, plstd, sharpe, dvol) = calcPL(prcAll)
-score = meanpl - 0.1*plstd
-print("=====")
-print("mean(PL): %.1lf" % meanpl)
-print("return: %.5lf" % ret)
-print("StdDev(PL): %.2lf" % plstd)
-print("annSharpe(PL): %.2lf " % sharpe)
-print("totDvolume: %.0lf " % dvol)
-print("Score: %.2lf" % score)
+    meanpls = []
+    plstds = []
+    scores = []
+
+    for i in range(1, 251):
+        print("Start at: ", i)
+        (meanpl, ret, plstd, sharpe, dvol) = calcPL(getPosition, i, prcAll)
+        score = meanpl - 0.1*plstd
+        
+        meanpls.append(meanpl)
+        plstds.append(plstd)
+        scores.append(score)
+
+        print("=====")
+        print("mean(PL): %.1lf" % meanpl)
+        print("return: %.5lf" % ret)
+        print("StdDev(PL): %.2lf" % plstd)
+        print("annSharpe(PL): %.2lf " % sharpe)
+        print("totDvolume: %.0lf " % dvol)
+        print("Score: %.2lf" % score)
+    
+    print("Summary: ")
+    print("Mean: ")
+    print(pd.Series(meanpls).describe())
+    print("Std: ")
+    print(pd.Series(plstds).describe())
+    print("Score")
+    print(pd.Series(scores).describe())
