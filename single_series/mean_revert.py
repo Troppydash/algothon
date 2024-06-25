@@ -4,7 +4,7 @@ from util.util import setVolume
 # Try moving average
 
 preTrend = 0
-def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd):
+def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod = 30, shortPeriod = 15):
     global preTrend
 
     # Check for extremes (outside 1.5 std)
@@ -17,28 +17,39 @@ def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd):
         return
 
     # Find trend signal by checking moving average cross-over
-    if (len(prices[ticker]) <= 40):
+    if (len(prices[ticker]) <= longPeriod):
         return
     
-    mavg40 = sum(prices[ticker][-40:]) / 40
-    mavg20 = sum(prices[ticker][-20:]) / 20
+    mavgLong = sum(prices[ticker][-longPeriod:]) / longPeriod
+    mavgShort = sum(prices[ticker][-shortPeriod:]) / shortPeriod
+    diff = mavgShort - mavgLong
 
-    trend = 1 if mavg20 > mavg40 else -1
+    # print(diff)
+
+    trend = preTrend
+    if diff > 0.08:
+        trend = 1
+    elif diff < -0.08:
+        trend = -1
+
+    # print(trend, preTrend)
     
     # If the 2 extremes above doesn't work, then buy/sell everything
     # when there is a change in trend
-    if (trend == 1 and preTrend in (-1, 0) and prices[ticker][-1] < priceMean):
+    if (trend == 1 and preTrend in (-1, 0)):
         currentPos[ticker] = setVolume(INF, prices[ticker][-1])
-    elif (trend == -1 and preTrend in (1, 0) and prices[ticker][-1] > priceMean):
+    elif (trend == -1 and preTrend in (1, 0)):
         currentPos[ticker] = setVolume(-INF, prices[ticker][-1])
     # Update preTrend
     preTrend = trend
+
+    # print("Position: ", currentPos[ticker])
     
 
 
 # Very simple mean reversion
 # PL: 2, std: 14.97, score: 0.47
-def meanRevert(currentPos, prices, ticker: int, priceMean, priceStd):
+def meanRevertGradual(currentPos, prices, ticker: int, priceMean, priceStd):
     diff = prices[ticker][-1] - priceMean
     upper = 1.5 * priceStd
     mid = upper/2
@@ -59,4 +70,20 @@ def meanRevert(currentPos, prices, ticker: int, priceMean, priceStd):
         return
     elif diff <= -mid:
         currentPos[ticker] = setVolume(currentPos[ticker] + limitVol * (-diff - mid)/(upper - mid), prices[ticker][-1])
+        return
+
+# Flip instantly for quick money when outside of 1 std.
+# Might not trade at all, only used for awkward ticker
+def meanRevertStrict(currentPos, prices, ticker: int, priceMean, priceStd):
+    diff = prices[ticker][-1] - priceMean
+    upper = 1 * priceStd
+    
+    # Sell when above mean 1 std
+    if diff >= upper:
+        currentPos[ticker] = setVolume(-INF, prices[ticker][-1])
+        return
+    
+    # Buy when below mean 1 std
+    if diff <= -upper:
+        currentPos[ticker] = setVolume(INF, prices[ticker][-1])
         return

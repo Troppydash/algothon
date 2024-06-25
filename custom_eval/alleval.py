@@ -2,6 +2,8 @@
 
 import numpy as np
 import pandas as pd
+import random
+import matplotlib.pyplot as plt
 
 nInst = 0
 nt = 0
@@ -54,7 +56,7 @@ def calcPL(getPosition, start, prcHist):
         annSharpe = np.sqrt(250) * plmu / plstd
     return (plmu, ret, plstd, annSharpe, totDVolume)
 
-def all_eval(getPosition):
+def all_eval(getPosition, limit = 250):
     pricesFile = "./prices.txt"
     prcAll = loadPrices(pricesFile)
     print("Loaded %d instruments for %d days" % (nInst, nt))
@@ -63,9 +65,11 @@ def all_eval(getPosition):
     plstds = []
     scores = []
 
-    for i in range(1, 251):
+    start = [198, 215, 180, 9, 209, 111, 194, 122, 144, 34, 104, 96, 3, 133, 125, 86, 40, 79, 71, 41, 57, 128, 241, 108, 182, 69, 95, 124, 232, 89, 250, 192, 67, 58, 55, 7, 101, 19, 109, 4, 185, 92, 211, 47, 228, 76, 87, 166, 1, 242, 222, 129, 13, 176, 234, 165, 139, 134, 117, 157, 205, 236, 48, 195, 14, 42, 154, 153, 68, 179, 35, 37, 231, 223, 66, 78, 148, 10, 119, 25, 80, 43, 132, 208, 18, 197, 53, 169, 201, 72, 45, 103, 54, 94, 64, 200, 173, 83, 207, 167, 123, 247, 186, 235, 187, 164, 214, 38, 102, 36, 17, 249, 171, 202, 32, 174, 221, 212, 52, 151, 22, 145, 149, 184, 244, 191, 39, 99, 27, 135, 59, 142, 137, 140, 118, 6, 152, 127, 193, 20, 159, 220, 8, 141, 206, 227, 81, 218, 114, 130, 131, 56, 77, 65, 107, 85, 246, 163, 158, 146, 26, 143, 168, 105, 50, 91, 29, 217, 177, 138, 213, 5, 170, 112, 199, 61, 126, 63, 204, 110, 88, 238, 49, 224, 46, 155, 219, 121, 239, 150, 245, 31, 189, 203, 62, 181, 161, 188, 160, 84, 196, 75, 183, 230, 190, 229, 225, 136, 74, 60, 15, 156, 51, 178, 12, 33, 172, 243, 106, 70, 216, 248, 2, 97, 147, 23, 44, 115, 113, 175, 233, 21, 210, 90, 226, 100, 162, 240, 24, 116, 11, 93, 120, 28, 73, 30, 237, 82, 16, 98]
+    for i in range(0, limit):
+        currentStart = start[i]
         # print("Start at: ", i)
-        (meanpl, ret, plstd, sharpe, dvol) = calcPL(getPosition, i, prcAll)
+        (meanpl, ret, plstd, sharpe, dvol) = calcPL(getPosition, currentStart, prcAll)
         score = meanpl - 0.1*plstd
         
         meanpls.append(meanpl)
@@ -83,6 +87,10 @@ def all_eval(getPosition):
     print("Summary: ")
     print("Mean: ")
     print(pd.Series(meanpls).describe())
+    plt.figure()
+    plt.plot(meanpls)
+    plt.show()
+
     print("Std: ")
     print(pd.Series(plstds).describe())
     print("Score")

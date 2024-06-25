@@ -4,7 +4,10 @@ import numpy as np
 import pandas as pd
 
 from pair_trading.pair_trading_max_vol import better_pair, better_pair_aggregate
-from single_series.mean_revert import meanRevert
+from single_series.mean_revert import meanRevertStrict, meanRevertGradual, movingAvg
+
+from single_series.arima import linreg
+import statsmodels.api as sm
 
 from util.util import setVolume
 from util.constants import LIMIT, INF, COMM_RATE
@@ -15,7 +18,8 @@ from util.constants import LIMIT, INF, COMM_RATE
 ### TO RUN, RUN 'eval.py' ##########################
 
 currentPos = np.zeros(50)
-
+# model4 = sm.load("./arima_model/model4.pickle")
+model6 = sm.load("./arima_model/model6.pickle")
 
 def getMyPosition(prices):
     global currentPos
@@ -44,16 +48,37 @@ def getMyPosition(prices):
     # Mean PL jumps by 10 (and so is PL std), hmmm
     better_pair(prices, 29, 30, 0.45879271464201205, 25.24018140455108, 25.39018140455108, 25.540181404551078, 9.0, 4.0)
 
-
     currentPos = better_pair_aggregate()
     
     # Single trade
-    # For ticker 8
-    meanRevert(currentPos, prices, 8, 68.537300, 0.585843)
+    # For ticker 8, simple mean reversion (TODO: See if there is a better way)
+    # Increase performance by .1 
+    meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
+    
+    # # Ticker 0: No clue
+    # # Ticker 3: Moving average: Mean = 0.2, Std = 17. 
+    # # Currently hurts average performance on avg all start points, so comment it
+    # # movingAvg(currentPos, prices, 3, 48.004780, 2.051494, longPeriod=30, shortPeriod=15)
+
+    # Ticker 4: Negative score, but positive PL. Performs poorly for sudden jump.
+    # Hurst avg start points performance :| Fuk
+    # # linreg(currentPos, prices, 0.1, model4, 4)
+
+    # Ticker 6: Less risky, higher PL, but with higher Std, so lower score
+    # meanRevertGradual(currentPos, prices, 6, 18.177200, 0.299771)
+    # Hurt performance by -0.2
+    # movingAvg(currentPos, prices, 6, 18.177200, 0.299771, 40, 20)
+
+    # Ticker 27: Slow, significant trend 
+    # movingAvg(currentPos, prices, 27, 28.912860, 0.495184, 40, 20)
+
+    # Ticker 18: Slow, significant trend
+    # Somehow still hurts performance
+    # movingAvg(currentPos, prices, 18, 13.722540, 0.697558, 40, 20)
 
     return currentPos
 
 
 if __name__ == "__main__":
     from custom_eval.alleval import all_eval
-    all_eval(getMyPosition)
+    all_eval(getMyPosition, 100)

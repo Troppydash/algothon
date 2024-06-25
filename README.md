@@ -4,15 +4,15 @@
 2. Pair trading: Group using cointegration and trade using Min Profit Optimization
 3. Pair trading: Lead/ lag
 
-0:
+0: Probably not ARIMA and non-stationary => Prob can't do single
 
 1: Pair with 10?
 
 2: Pair with 11?
 
-3:
+3: Probably not ARIMA and non-stationary => Strong trend, might do crossing moving average
 
-4:
+4: 
 
 5: Pair with 38?
 
