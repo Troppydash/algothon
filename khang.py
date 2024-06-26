@@ -175,7 +175,8 @@ def getMyPosition(prices):
     # Ticker 3: Moving average
     movingAvg(currentPos, prices, 3, 48.004780, 2.051494, 40, 20, threshold=0.2)
 
-    # Ticker 6: Less risky, higher PL, but with higher Std, so lower score.
+    # Ticker 6: Confirmed stationary-ish with AD-fuller at 10% sig level 
+    # Less risky, higher PL, but with higher Std, so lower score.
     # Score is still positive, but around 40% of the score is negative
     meanRevertStrict(currentPos, prices, 6, 18.177200, 0.299771)
 
