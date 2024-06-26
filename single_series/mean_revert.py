@@ -75,9 +75,9 @@ def meanRevertGradual(currentPos, prices, ticker: int, priceMean, priceStd):
 
 # Flip instantly for quick money when outside of 1 std.
 # Might not trade at all, only used for awkward ticker
-def meanRevertStrict(currentPos, prices, ticker: int, priceMean, priceStd):
+def meanRevertStrict(currentPos, prices, ticker: int, priceMean, priceStd, upperScale=1):
     diff = prices[ticker][-1] - priceMean
-    upper = 1 * priceStd
+    upper = upperScale * priceStd
     
     # Sell when above mean 1 std
     if diff >= upper:
