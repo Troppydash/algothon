@@ -4,7 +4,8 @@ from util.util import setVolume
 # Try moving average
 
 preTrend = 0
-def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod = 30, shortPeriod = 15):
+def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod = 30, shortPeriod = 15, 
+              threshold = 0.8):
     global preTrend
 
     # Check for extremes (outside 1.5 std)
@@ -24,17 +25,17 @@ def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod =
     mavgShort = sum(prices[ticker][-shortPeriod:]) / shortPeriod
     diff = mavgShort - mavgLong
 
-    # print(diff)
-
     trend = preTrend
-    if diff > 0.08:
+    if diff > threshold:
         trend = 1
-    elif diff < -0.08:
+    elif diff < -threshold:
         trend = -1
 
+    # print(mavgShort, mavgLong, diff)
     # print(trend, preTrend)
+    # print(prices[ticker][-1])
     
-    # If the 2 extremes above doesn't work, then buy/sell everything
+    # Buy/sell everything
     # when there is a change in trend
     if (trend == 1 and preTrend in (-1, 0)):
         currentPos[ticker] = setVolume(INF, prices[ticker][-1])

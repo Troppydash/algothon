@@ -44,8 +44,9 @@ def better_pair(prices, share1, share2, beta, lower, middle, upper, trade1, trad
         better_pair__amount[f"{share1}-{share2}-1"] = (share1, -volume1)
         better_pair__amount[f"{share1}-{share2}-2"] = (share2, volume2)
 
-def better_pair_aggregate():
-    currentPos = np.zeros(50)
+def better_pair_aggregate(currentPos):
+    for key, value in better_pair__amount.items():
+        currentPos[value[0]] = 0
     for key, value in better_pair__amount.items():
         currentPos[value[0]] += value[1]
     return currentPos
