@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 from tq import getMyPosition as getPosition
+import matplotlib.pyplot as plt
 
 nInst = 0
 nt = 0
@@ -23,6 +24,10 @@ print("Loaded %d instruments for %d days" % (nInst, nt))
 
 start = np.random.randint(1, 250)
 start = 250
+ticker = 38
+
+values = []
+volumes = []
 
 
 def calcPL(prcHist):
@@ -54,6 +59,8 @@ def calcPL(prcHist):
         ret = 0.0
         if (totDVolume > 0):
             ret = value / totDVolume
+        values.append(value)
+        volumes.append(curPos[ticker])
         # print("Day %d value: %.2lf todayPL: $%.2lf $-traded: %.0lf return: %.5lf" %
         #       (t, value, todayPL, totDVolume, ret))
     pll = np.array(todayPLL)
@@ -74,3 +81,8 @@ print("StdDev(PL): %.2lf" % plstd)
 print("annSharpe(PL): %.2lf " % sharpe)
 print("totDvolume: %.0lf " % dvol)
 print("Score: %.2lf" % score)
+
+fig, ax = plt.subplots(2,1)
+ax[0].plot(values)
+ax[1].plot(volumes)
+plt.show()
