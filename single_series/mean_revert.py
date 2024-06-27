@@ -9,7 +9,7 @@ def init_movingAvg():
     preTrends.clear()
 
 def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod = 30, shortPeriod = 15, 
-              threshold = 0.8):
+              threshold = 0.08):
     global preTrends
     if ticker not in preTrends:
         preTrends[ticker] = 0
@@ -18,9 +18,11 @@ def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod =
     upper = priceMean + 1.5 * priceStd
     if (prices[ticker][-1] > upper):
         currentPos[ticker] = setVolume(-INF, prices[ticker][-1])
+        preTrends[ticker] = 0
         return
     elif (prices[ticker][-1] < -upper):
         currentPos[ticker] = setVolume(INF, prices[ticker][-1])
+        preTrends[ticker] = 0
         return
 
     # Find trend signal by checking moving average cross-over
@@ -32,6 +34,9 @@ def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod =
     diff = mavgShort - mavgLong
 
     trend = preTrends[ticker]
+
+    print(diff, trend, preTrends[ticker])
+
     if diff > threshold:
         trend = 1
     elif diff < -threshold:

@@ -154,7 +154,7 @@ def getMyPosition(prices):
     # better_pair(prices, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958, -8.603364425168959, 7.0, 8.0)
     # better_pair(prices, 2, 11, 0.22442595136426546, 41.24598604371131, 41.35598604371131, 41.46598604371131, 9.0, 2.0)
 
-    currentPos = better_pair_aggregate(currentPos)
+    # currentPos = better_pair_aggregate(currentPos)
     
     # # Single trade
     # # SAFE TICKERS: Gain positive PL and score on themselves and overall
@@ -194,7 +194,11 @@ def getMyPosition(prices):
 
     # Moving average: Too many fake trend, can't fit a moving average
     # movingAvg(currentPos, prices, 4, 55.496120, 1.733916, 30, 15, threshold=0.1)
-    
+
+    # Ticker 9: Can't fit ARIMA, can't use mean revert due to increasing tail,
+    # can't use moving average due to cyclic fluctuations (too fast to capture trend reversal) at the start
+
+    # Ticker 15: Too jaggy trend to fit ARIMA
 
     # Ticker 18: Significant trend, but initial jerky part. 
     # Can't predict trend reliably (due to the initial jerking part)
