@@ -3,10 +3,16 @@ from util.util import setVolume
 
 # Try moving average
 
-preTrend = 0
+preTrends = {}
+def init_movingAvg():
+    global preTrends
+    preTrends.clear()
+
 def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod = 30, shortPeriod = 15, 
               threshold = 0.8):
-    global preTrend
+    global preTrends
+    if ticker not in preTrends:
+        preTrends[ticker] = 0
 
     # Check for extremes (outside 1.5 std)
     upper = priceMean + 1.5 * priceStd
@@ -25,24 +31,24 @@ def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod =
     mavgShort = sum(prices[ticker][-shortPeriod:]) / shortPeriod
     diff = mavgShort - mavgLong
 
-    trend = preTrend
+    trend = preTrends[ticker]
     if diff > threshold:
         trend = 1
     elif diff < -threshold:
         trend = -1
 
     # print(mavgShort, mavgLong, diff)
-    # print(trend, preTrend)
+    # print(trend, preTrends[ticker])
     # print(prices[ticker][-1])
     
     # Buy/sell everything
     # when there is a change in trend
-    if (trend == 1 and preTrend in (-1, 0)):
+    if (trend == 1 and preTrends[ticker] in (-1, 0)):
         currentPos[ticker] = setVolume(INF, prices[ticker][-1])
-    elif (trend == -1 and preTrend in (1, 0)):
+    elif (trend == -1 and preTrends[ticker] in (1, 0)):
         currentPos[ticker] = setVolume(-INF, prices[ticker][-1])
-    # Update preTrend
-    preTrend = trend
+    # Update preTrends[ticker]
+    preTrends[ticker] = trend
 
     # print("Position: ", currentPos[ticker])
     
