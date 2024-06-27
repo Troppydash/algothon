@@ -1,9 +1,10 @@
 from util.constants import INF, LIMIT
 from util.util import setVolume
+from collections import defaultdict
 
 # Try moving average
 
-preTrends = {}
+preTrends = defaultdict(lambda: 0)
 def init_movingAvg():
     global preTrends
     preTrends.clear()
@@ -11,8 +12,6 @@ def init_movingAvg():
 def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod = 30, shortPeriod = 15, 
               threshold = 0.08):
     global preTrends
-    if ticker not in preTrends:
-        preTrends[ticker] = 0
 
     # Check for extremes (outside 1.5 std)
     upper = priceMean + 1.5 * priceStd
@@ -35,7 +34,7 @@ def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod =
 
     trend = preTrends[ticker]
 
-    print(diff, trend, preTrends[ticker])
+    # print(diff, trend, preTrends[ticker])
 
     if diff > threshold:
         trend = 1
