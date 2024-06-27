@@ -27,6 +27,7 @@ start = 250
 ticker = 38
 
 values = []
+prices = []
 volumes = []
 
 
@@ -59,6 +60,8 @@ def calcPL(prcHist):
         ret = 0.0
         if (totDVolume > 0):
             ret = value / totDVolume
+
+        prices.append(curPrices[ticker])
         values.append(value)
         volumes.append(curPos[ticker])
         # print("Day %d value: %.2lf todayPL: $%.2lf $-traded: %.0lf return: %.5lf" %
@@ -82,7 +85,8 @@ print("annSharpe(PL): %.2lf " % sharpe)
 print("totDvolume: %.0lf " % dvol)
 print("Score: %.2lf" % score)
 
-fig, ax = plt.subplots(2,1)
+fig, ax = plt.subplots(3,1)
 ax[0].plot(values)
-ax[1].plot(volumes)
+ax[1].plot(prices)
+ax[2].plot(volumes)
 plt.show()
