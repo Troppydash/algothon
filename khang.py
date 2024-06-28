@@ -162,7 +162,7 @@ def getMyPosition(prices):
     # currentPos = better_pair_aggregate(currentPos)
 
     # LEAD LAG TRADE:
-    # predict(currentPos, df, 38, list(range(50)), 1, 1.1)
+    predict(currentPos, df, 38, list(range(50)), 1, 1.1)
     # predict(currentPos, df, 27, list(range(50)), 1, 1.1)
     # predict(currentPos, df, 18, [3], 13, 1.1)
     

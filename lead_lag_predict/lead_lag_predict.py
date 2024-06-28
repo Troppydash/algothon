@@ -18,6 +18,7 @@ def predict(currentPos, df, ticker, indices, lags, deg):
     ).fit()
 
     predict_mu = result.forecast()
+    print(predict_mu)
     est = predict_mu
     val = df[ticker].values[-1]
     vol = int(10000 / val)

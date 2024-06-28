@@ -33,7 +33,7 @@ def calcPL(prcHist):
     todayPLL = []
     values = []
     (_, nt) = prcHist.shape
-    for t in range(1, 251):
+    for t in range(250, 499):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]
