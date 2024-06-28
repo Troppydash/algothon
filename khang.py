@@ -11,6 +11,8 @@ from single_series.arima import linreg
 from single_series.trend import movingAverageTrend
 from single_series.fair_price import fairPriceStrategy
 
+from lead_lag_predict.lead_lag_predict import predict
+
 from util.util import setVolume
 from util.util import safetyCheck
 from util.constants import LIMIT, INF, COMM_RATE
@@ -129,7 +131,7 @@ priceStds = {
 
 
 currentPos = np.zeros(50)
-model4 = sm.load("./arima_model/model4.pickle")
+# model4 = sm.load("./arima_model/model4.pickle")
 # model6 = sm.load("./arima_model/model6.pickle")
 
 def getMyPosition(prices):
@@ -137,56 +139,63 @@ def getMyPosition(prices):
     nins, nt = prices.shape
     if nt < 2:
         return np.zeros(nins)
-
-    # Terry's part
-    # Clean up Terry's param. TODO: Recheck this
-    better_pair(prices, 11, 42, 2.81, -9.48586161, -8.89586161, -8.30586161, 8, 21)
-    better_pair(prices, 14, 30, 0.7192064351085297, 4.86640231, 5.15640231, 5.44640231, 6, 4)
-    better_pair(prices, 22, 24, 3.4117759223360125, -149.87702011, -148.68702011, -147.49702011, 8, 27)
-    better_pair(prices, 28, 41, 0.021148, 49.6408878, 49.8208878, 50.0008878, 48, 1)
-    better_pair(prices, 7, 19, 0.3973201339866572, 33.5724356, 34.1524356, 34.7324356, 13, 5)
-    better_pair(prices, 43, 49, 0.2046650849773665, 47.71489042555398, 48.64489042555398, 49.57489042555398, 10, 2)
-    better_pair(prices, 13, 39, -2.935182925012027, 193.2674924878151, 193.84749248781512, 194.42749248781513, 7.0, 19.0)
-    better_pair(prices, 12, 34, 0.23829431834048995, 20.657766061851223, 20.757766061851225, 20.857766061851226, 9.0, 2.0)
-    better_pair(prices, 12, 25, -0.06366267571277003, 29.863092873692395, 29.983092873692396, 30.103092873692397, 16.0, 1.0)
-    better_pair(prices, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299, 39.807363604822996, 12.0, 2.0)
-
-    # New pairs added: Improve the performance across min, mean, max, but also widen the std (so takes caution, prob re-check?)
-    better_pair(prices, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958, -8.603364425168959, 7.0, 8.0)
-    better_pair(prices, 2, 11, 0.22442595136426546, 41.24598604371131, 41.35598604371131, 41.46598604371131, 9.0, 2.0)
-
-    currentPos = better_pair_aggregate(currentPos)
     
-    # Single trade
-    # SAFE TICKERS: Gain positive PL and score on themselves and overall
-    # For ticker 8, simple mean reversion (TODO: See if there is a better way)
-    # Increase performance by .1 
-    meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
+    df = pd.DataFrame(prices.T, columns=np.arange(50))
 
-    # Ticker 27: Slow, significant trend. Increase performance by .2 
-    movingAvg(currentPos, prices, 27, 28.912860, 0.495184, 40, 20, threshold=0.1)
+    # # PAIR TRADING: Terry's part
+    # # Clean up Terry's param. TODO: Recheck this
+    # better_pair(prices, 11, 42, 2.81, -9.48586161, -8.89586161, -8.30586161, 8, 21)
+    # better_pair(prices, 14, 30, 0.7192064351085297, 4.86640231, 5.15640231, 5.44640231, 6, 4)
+    # better_pair(prices, 22, 24, 3.4117759223360125, -149.87702011, -148.68702011, -147.49702011, 8, 27)
+    # better_pair(prices, 28, 41, 0.021148, 49.6408878, 49.8208878, 50.0008878, 48, 1)
+    # better_pair(prices, 7, 19, 0.3973201339866572, 33.5724356, 34.1524356, 34.7324356, 13, 5)
+    # better_pair(prices, 43, 49, 0.2046650849773665, 47.71489042555398, 48.64489042555398, 49.57489042555398, 10, 2)
+    # better_pair(prices, 13, 39, -2.935182925012027, 193.2674924878151, 193.84749248781512, 194.42749248781513, 7.0, 19.0)
+    # better_pair(prices, 12, 34, 0.23829431834048995, 20.657766061851223, 20.757766061851225, 20.857766061851226, 9.0, 2.0)
+    # better_pair(prices, 12, 25, -0.06366267571277003, 29.863092873692395, 29.983092873692396, 30.103092873692397, 16.0, 1.0)
+    # better_pair(prices, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299, 39.807363604822996, 12.0, 2.0)
 
-    # Ticker 3: Moving average
-    movingAvg(currentPos, prices, 3, 48.004780, 2.051494, 40, 20, threshold=0.2)
+    # # New pairs added: Improve the performance across min, mean, max, but also widen the std (so takes caution, prob re-check?)
+    # better_pair(prices, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958, -8.603364425168959, 7.0, 8.0)
+    # better_pair(prices, 2, 11, 0.22442595136426546, 41.24598604371131, 41.35598604371131, 41.46598604371131, 9.0, 2.0)
 
-    # Ticker 6: Confirmed stationary-ish with AD-fuller at 10% sig level 
-    # Less risky, higher PL, but with higher Std, so lower score.
-    # Score is still positive, but around 40% of the score is negative
-    meanRevertStrict(currentPos, prices, 6, 18.177200, 0.299771)
+    # currentPos = better_pair_aggregate(currentPos)
 
-    # RISKY STICKER: Gain positive PL, but std makes negative score individually.
-    # Group them into groups => Diversification = Overall score improvements
+    # LEAD LAG TRADE:
+    # predict(currentPos, df, 38, list(range(50)), 1, 1.1)
+    # predict(currentPos, df, 27, list(range(50)), 1, 1.1)
+    # predict(currentPos, df, 18, [3], 13, 1.1)
+    
+    # # SINGLE TRADE:
+    # # SAFE TICKERS: Gain positive PL and score on themselves and overall
+    # # For ticker 8, simple mean reversion (TODO: See if there is a better way)
+    # # Increase performance by .1 
+    # meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
 
-    # Ticker 4: Mean reversion (TODO: other strategy needs more careful investigation)
-    # Mean revert: Makes decent PL, but std varies due to the fluctuation of the price
-    meanRevertStrict(currentPos, prices, 4, 55.496120, 1.733916, 1.5)
+    # # Ticker 27: Slow, significant trend. Increase performance by .2 
+    # movingAvg(currentPos, prices, 27, 28.912860, 0.495184, 40, 20, threshold=0.1)
 
-    # Ticker 15: Too jaggy trend to fit ARIMA. Try using moving average for trend prediction.
-    # Can't do fair price with moving average on short window.
-    # Work for moving average with short window and low threshold due to the short trend cycle.
-    # Quite high std (due to the price itself is volatile), but high PL => Score improvement
-    # with diversification
-    movingAvg(currentPos, prices, 15, 25.024019999999997, 1.1686007423367402, 20, 10, 0)
+    # # Ticker 3: Moving average
+    # movingAvg(currentPos, prices, 3, 48.004780, 2.051494, 40, 20, threshold=0.2)
+
+    # # Ticker 6: Confirmed stationary-ish with AD-fuller at 10% sig level 
+    # # Less risky, higher PL, but with higher Std, so lower score.
+    # # Score is still positive, but around 40% of the score is negative
+    # meanRevertStrict(currentPos, prices, 6, 18.177200, 0.299771)
+
+    # # RISKY STICKER: Gain positive PL, but std makes negative score individually.
+    # # Group them into groups => Diversification = Overall score improvements
+
+    # # Ticker 4: Mean reversion (TODO: other strategy needs more careful investigation)
+    # # Mean revert: Makes decent PL, but std varies due to the fluctuation of the price
+    # meanRevertStrict(currentPos, prices, 4, 55.496120, 1.733916, 1.5)
+
+    # # Ticker 15: Too jaggy trend to fit ARIMA. Try using moving average for trend prediction.
+    # # Can't do fair price with moving average on short window.
+    # # Work for moving average with short window and low threshold due to the short trend cycle.
+    # # Quite high std (due to the price itself is volatile), but high PL => Score improvement
+    # # with diversification
+    # movingAvg(currentPos, prices, 15, 25.024019999999997, 1.1686007423367402, 20, 10, 0)
 
     
     # Testing: Risky, not-working stuff
@@ -220,4 +229,4 @@ def getMyPosition(prices):
 
 if __name__ == "__main__":
     from custom_eval.alleval import all_eval
-    all_eval(currentPos, getMyPosition, 250)
+    all_eval(currentPos, getMyPosition, 10)
