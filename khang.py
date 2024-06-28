@@ -164,7 +164,7 @@ def getMyPosition(prices):
     # LEAD LAG TRADE:
     predict(currentPos, df, 38, list(range(50)), 1, 1.1)
     # predict(currentPos, df, 27, list(range(50)), 1, 1.1)
-    # predict(currentPos, df, 18, [3], 13, 1.1)
+    # predict(currentPos, df, 39, list(range(50)), 1, 1.1)
     
     # # SINGLE TRADE:
     # # SAFE TICKERS: Gain positive PL and score on themselves and overall
