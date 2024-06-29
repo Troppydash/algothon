@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from khang import getMyPosition as getPosition
+from team import getMyPosition as getPosition
 
 nInst = 0
 nt = 0
