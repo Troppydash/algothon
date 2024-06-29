@@ -8,6 +8,10 @@ from pair_trading.pair_trading_max_vol import better_pair, better_pair_aggregate
 
 from single_series.mean_revert import meanRevertStrict, meanRevertGradual, movingAvg
 from single_series.arima import linreg
+from single_series.trend import movingAverageTrend
+from single_series.fair_price import fairPriceStrategy
+
+from lead_lag_predict.lead_lag_predict import predict
 
 from util.util import setVolume
 from util.util import safetyCheck
@@ -127,7 +131,7 @@ priceStds = {
 
 
 currentPos = np.zeros(50)
-model4 = sm.load("./arima_model/model4.pickle")
+# model4 = sm.load("./arima_model/model4.pickle")
 # model6 = sm.load("./arima_model/model6.pickle")
 
 def getMyPosition(prices):
@@ -135,8 +139,10 @@ def getMyPosition(prices):
     nins, nt = prices.shape
     if nt < 2:
         return np.zeros(nins)
+    
+    df = pd.DataFrame(prices.T, columns=np.arange(50))
 
-    # # Terry's part
+    # # PAIR TRADING: Terry's part
     # # Clean up Terry's param. TODO: Recheck this
     # better_pair(prices, 11, 42, 2.81, -9.48586161, -8.89586161, -8.30586161, 8, 21)
     # better_pair(prices, 14, 30, 0.7192064351085297, 4.86640231, 5.15640231, 5.44640231, 6, 4)
@@ -148,15 +154,19 @@ def getMyPosition(prices):
     # better_pair(prices, 12, 34, 0.23829431834048995, 20.657766061851223, 20.757766061851225, 20.857766061851226, 9.0, 2.0)
     # better_pair(prices, 12, 25, -0.06366267571277003, 29.863092873692395, 29.983092873692396, 30.103092873692397, 16.0, 1.0)
     # better_pair(prices, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299, 39.807363604822996, 12.0, 2.0)
-    
-    # better_pair(prices, 1, 10, 0.824083971539593, 40.3584735402981, 41.2184735402981, 42.0784735402981, 8.0, 6.0)
+
     # # New pairs added: Improve the performance across min, mean, max, but also widen the std (so takes caution, prob re-check?)
     # better_pair(prices, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958, -8.603364425168959, 7.0, 8.0)
     # better_pair(prices, 2, 11, 0.22442595136426546, 41.24598604371131, 41.35598604371131, 41.46598604371131, 9.0, 2.0)
 
-    currentPos = better_pair_aggregate(currentPos)
+    # currentPos = better_pair_aggregate(currentPos)
+
+    # LEAD LAG TRADE:
+    predict(currentPos, df, 38, list(range(50)), 1, 1.1)
+    # predict(currentPos, df, 27, list(range(50)), 1, 1.1)
+    # predict(currentPos, df, 39, list(range(50)), 1, 1.1)
     
-    # # Single trade
+    # # SINGLE TRADE:
     # # SAFE TICKERS: Gain positive PL and score on themselves and overall
     # # For ticker 8, simple mean reversion (TODO: See if there is a better way)
     # # Increase performance by .1 
@@ -180,6 +190,13 @@ def getMyPosition(prices):
     # # Mean revert: Makes decent PL, but std varies due to the fluctuation of the price
     # meanRevertStrict(currentPos, prices, 4, 55.496120, 1.733916, 1.5)
 
+    # # Ticker 15: Too jaggy trend to fit ARIMA. Try using moving average for trend prediction.
+    # # Can't do fair price with moving average on short window.
+    # # Work for moving average with short window and low threshold due to the short trend cycle.
+    # # Quite high std (due to the price itself is volatile), but high PL => Score improvement
+    # # with diversification
+    # movingAvg(currentPos, prices, 15, 25.024019999999997, 1.1686007423367402, 20, 10, 0)
+
     
     # Testing: Risky, not-working stuff
     
@@ -194,7 +211,10 @@ def getMyPosition(prices):
 
     # Moving average: Too many fake trend, can't fit a moving average
     # movingAvg(currentPos, prices, 4, 55.496120, 1.733916, 30, 15, threshold=0.1)
-    
+
+    # Ticker 9: Can't fit ARIMA, can't use mean revert due to increasing tail,
+    # can't use moving average due to cyclic fluctuations (too fast to capture trend reversal) at the start
+
 
     # Ticker 18: Significant trend, but initial jerky part. 
     # Can't predict trend reliably (due to the initial jerking part)
@@ -209,4 +229,4 @@ def getMyPosition(prices):
 
 if __name__ == "__main__":
     from custom_eval.alleval import all_eval
-    all_eval(currentPos, getMyPosition, 250)
+    all_eval(currentPos, getMyPosition, 10)

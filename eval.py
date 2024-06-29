@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from khang import getMyPosition as getPosition
 
 nInst = 0
@@ -30,6 +31,7 @@ def calcPL(prcHist):
     totDVolumeRandom = 0
     value = 0
     todayPLL = []
+    values = []
     (_, nt) = prcHist.shape
     for t in range(250, 501):
         prcHistSoFar = prcHist[:, :t]
@@ -48,6 +50,7 @@ def calcPL(prcHist):
         todayPL = cash + posValue - value
         todayPLL.append(todayPL)
         value = cash + posValue
+        values.append(value)
         ret = 0.0
         if (totDVolume > 0):
             ret = value / totDVolume
@@ -58,6 +61,9 @@ def calcPL(prcHist):
     annSharpe = 0.0
     if (plstd > 0):
         annSharpe = np.sqrt(250) * plmu / plstd
+    plt.figure()
+    plt.plot(values)
+    plt.show()
     return (plmu, ret, plstd, annSharpe, totDVolume)
 
 
