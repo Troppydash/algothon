@@ -1,8 +1,10 @@
+import random
 from collections import defaultdict
 
 import numpy as np
 import pandas as pd
 import statsmodels.tsa.ardl as ardl
+import statsmodels.tsa.arima.model as arima
 import statsmodels.regression as reg
 import arch
 
@@ -117,11 +119,12 @@ def better_pair(df, t1, t2, beta, lower, middle, upper, s1, s2, v1, v2, scaler: 
         last[t1, t2] = -1
         amount[f"{t1}-{t2}-1"] = (t1, int(s1 * v1 * scaler))
         amount[f"{t1}-{t2}-2"] = (t2, -int(s2 * v2 * scaler))
-    #
-    if last[t1, t2] < 0 and delta >= middle or last[t1, t2] > 0 and delta <= middle:
-        last[t1, t2] = 0
-        amount[f"{t1}-{t2}-1"] = (t1, int(amount[f"{t1}-{t2}-1"][1] // 1.5))
-        amount[f"{t1}-{t2}-2"] = (t2, int(amount[f"{t1}-{t2}-2"][1] // 1.5))
+
+    # removing this is somehow better?
+    # if last[t1, t2] < 0 and delta >= middle or last[t1, t2] > 0 and delta <= middle:
+    #     last[t1, t2] = 0
+    #     amount[f"{t1}-{t2}-1"] = (t1, int(amount[f"{t1}-{t2}-1"][1] // 1.5))
+    #     amount[f"{t1}-{t2}-2"] = (t2, int(amount[f"{t1}-{t2}-2"][1] // 1.5))
 
     if delta > upper and last[t1, t2] != 1:
         last[t1, t2] = 1
@@ -172,29 +175,6 @@ if False:
 iter = 0
 
 
-def predict_raw(df, ticker, deg):
-    result = ardl.ARDL(
-        df[ticker].values[-100:],
-        1,
-        df.values[-100:, :],
-        1,
-        causal=True
-    ).fit()
-
-    predict_mu = result.forecast()
-    est = predict_mu
-    val = df[ticker].values[-1]
-    vol = int(10000 / val)
-    trans = 0.001 * deg * val * vol
-
-    pforecast = (est - val)
-    if abs(vol * pforecast) > trans:
-        if pforecast > 0:
-            currentPos[ticker] = vol
-        else:
-            currentPos[ticker] = -vol
-
-
 def predict(df, ticker, indices, deg):
     result = ardl.ARDL(
         df[ticker].pct_change().dropna().values[-200:],
@@ -218,21 +198,43 @@ def predict(df, ticker, indices, deg):
             currentPos[ticker] = -vol
 
 
+number = 0
+
+
+def predict_one(df, ticker, deg):
+    import warnings
+    warnings.filterwarnings("ignore")
+
+    result = arima.ARIMA(
+        df[ticker].pct_change().dropna().values[-250:],
+        order=(3, 0, 3)
+    ).fit()
+
+    predict_mu = result.forecast()
+    est = predict_mu
+    val = df[ticker].values[-1]
+    vol = int(10000 / val)
+    trans = 0.001 * deg * val * vol
+
+    pforecast = est * val
+    # print(est*val*vol)
+    if abs(vol * pforecast) > trans:
+        if pforecast > 0:
+            currentPos[ticker] = vol
+        else:
+            currentPos[ticker] = -vol
+
+
 def getMyPosition(prices):
     global currentPos, iter
 
     iter += 1
 
     nins, nt = prices.shape
-    if nt < 250:
+    if nt < 200:
         return np.zeros(nins)
 
     df = pd.DataFrame(prices.T, columns=np.arange(50))
-    weights = [-0.1344368, -0.035686, -0.1482424, -0.1665422, -0.0748774, 0.9619431]
-    indices = [5, 13, 16, 28, 30, 38]
-    # best_pair(df, weights, indices, 2.586489376879487, 2.6713907573920013, 2.7562921379045155)
-
-    used = {28, 39, 11, 42, 12, 34, 14, 30, 22, 24, 28, 41, 7, 19, 43, 49, 13, 39, 12, 25, 7, 48}
 
     if True:
         predict(df, 38, list(range(50)), 1.1)
@@ -253,8 +255,6 @@ def getMyPosition(prices):
         better_pair(df, 43, 49, 0.2046650849773665, 47.71489042555398, 48.64489042555398, 49.57489042555398,
                     10.0,
                     2.0, 15.130882130428203, 84.30281571404484)
-        better_pair(df, 13, 39, -2.935182925012027, 193.2674924878151, 193.84749248781512, 194.42749248781513,
-                    7.0, 19.0, 27.78240817914097, 10.587724592107909)
         better_pair(df, 12, 25, -0.06366267571277003, 29.863092873692395, 29.983092873692396,
                     30.103092873692397,
                     16.0, 1.0, 22.63672582397682, 140.66676044450696, 0.6)
@@ -263,8 +263,7 @@ def getMyPosition(prices):
                     2.0, 16.311085013375088, 99.96001599360255, 0.8)
         better_pair(df, 2, 11, 0.22442595136426555, 41.245986043711305, 41.355986043711304,
                     41.465986043711304, 9.0, 2.0, 22.857665318064413, 149.1201908738443, 0.6)
-
-        # better_one(df, 8, 68.08943333, 68.26943333, 68.44943333, 1, 10000 // 80)
+        better_one(df, 8, 68.08943333, 68.26943333, 68.44943333, 1, 10000 // 80)
 
     if False:
         copula(df, 7, 19, trading, 0.43, 0.56, 400)
@@ -274,53 +273,6 @@ def getMyPosition(prices):
         # copula(df, 27, 47, trading4, 0.56, 0.44, 550)
         # copula(df, 3, 36, trading4, 0.43, 0.56, 300)
 
-    # 20,25 done
-    # 21,34
-    # 21,35
-    # 24 41
-    # 25 34
-    # 27 47
-    # 19 37
-    # 18 36
-    # 17 18
-    # 16 25
-    # 13 39
-    # 12 34
-    # 12 25
-    # 12 15
-    # 11 47
-    # 11 20
-    # 8 14
-    # 7 48
-    # 7 45
-    # 7 32
-    # 5 39
-    # 4 47
-    # 4 27
-    # 4 11
-
-    # better_pair(df, 5, 44, 0.15299458297216598, 6.19603119, 6.35603119, 6.51603119, 7, 1, 109, 255)
-    # better_pair(df, currentPos[7]-currentPos[39], 7, 39, -1.1096567908341244, 100.64737749, 101.39737749, 102.14737749)
-    # pair_trade_log(df, 28, 49, -0.09244661852645539, 0.018986374603144413, 2, 2.5, 9000)
-    # pair_trade(df, 1, 10, 34.04245999999999, 1.603967876361618, 0.6, 2.5, 9000)
-    # pair_trade_log(df, 7, 8, -0.38218823, 0.02883, 2, 2.5, 9000)
-    # pair_trade_log(df, 43, 47, 0.5692941382086553, 0.03309117994281669, 1, 2.5, 9000)
-    # pair_trade_log(df, 22, 24, 0.06450, 0.032329, 1, 2.5, 9000)
-    # pair_trade_log(df, 14, 23, -0.697, 0.040451, 1, 2.5, 9000)
-    # pair_trade_log(df, 28, 39, 0.03865, 0.005758, 1, 1.3, 9000)
-    # another_pair(df, mr, 11, 42)
-    # another_pair(df, mr2, 28, 39)
-    # print((delta-m)/sd, pos)
-    # z = (delta-m)/sd
-    # if z > 0:
-    #     print('11 > 42, short 11, buy 42')
-    #     print(z, pos, currentPos[11], currentPos[42], mr.state)
-    # else:
-    #     print('11 < 42, buy 11, short 42')
-    #     print(z, pos, currentPos[11], currentPos[42], mr.state)
-    # pair_trade_log(df, 11, 42, 0.7556795088657547, 0.038963533345916526, 1, 2.5, 9000)
-
-    # currentPos = np.array([int(x) for x in currentPos])
     aggregate()
     regularize(df)
 
