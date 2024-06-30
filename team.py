@@ -33,8 +33,8 @@ def safetyCheck(currentPos, prices, ticker, priceMean, priceStd):
 SCALER = 2
 
 def getUnitTradeVolume(prices, share1, share2, trade1, trade2):
-    price1 = prices[share2][-1]
-    price2 = prices[share1][-1]
+    price1 = prices[share1][-1]
+    price2 = prices[share2][-1]
 
     # Get available volume
     vol1 = LIMIT/ price1
