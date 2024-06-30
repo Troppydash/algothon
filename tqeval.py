@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-from tq import getMyPosition as getPosition
+from myteam import getMyPosition as getPosition
 import matplotlib.pyplot as plt
 
 nInst = 0
@@ -24,7 +24,7 @@ print("Loaded %d instruments for %d days" % (nInst, nt))
 
 start = np.random.randint(1, 250)
 start = 250
-ticker = 38
+ticker = 32
 
 values = []
 prices = []
