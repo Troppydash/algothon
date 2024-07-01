@@ -23,7 +23,7 @@ prcAll = loadPrices(pricesFile)
 print("Loaded %d instruments for %d days" % (nInst, nt))
 
 start = np.random.randint(1, 250)
-start = 200
+start = 250
 ticker = 32
 
 values = []
@@ -47,7 +47,7 @@ def calcPL(prcHist):
     value = 0
     todayPLL = []
     (_, nt) = prcHist.shape
-    for t in range(start, start+301):
+    for t in range(start, 501):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]
@@ -92,7 +92,7 @@ def calcPL(prcHist):
     (plmu, plstd) = (np.mean(pll), np.std(pll))
     annSharpe = 0.0
     if (plstd > 0):
-        annSharpe = np.sqrt(100) * plmu / plstd
+        annSharpe = np.sqrt(250) * plmu / plstd
     return (plmu, ret, plstd, annSharpe, totDVolume)
 
 
@@ -118,7 +118,4 @@ for i,p in enumerate(pairs):
     ax[i+1,0].plot(pnls[key], label=key)
     ax[i+1,1].plot(positions[key], label=key)
 
-# ax[1].plot(prices)
-# ax[2].plot(volumes)
-# plt.show()
 fig.savefig('out.png')
