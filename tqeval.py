@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-from myteam import getMyPosition as getPosition
+from team import getMyPosition as getPosition
 import matplotlib.pyplot as plt
 
 nInst = 0
@@ -30,6 +30,11 @@ values = []
 prices = []
 volumes = []
 
+# pairs = [(28,39), (11,42),(43,49),(15,20),(1,10),(7,8),(14,30),(22,24),(25,36),(31,40),(33,37),(4,32),(9,46),(13,45),(44,47)]
+# pairs = [(12,34),(12,25),(7,48), (7,19), (28,39), (28,41), (2,11), (11,42), (43,49),(14,30),(22,24)]
+pairs = [(12,34),(7,48), (28,39), (2,11), (43,49),(14,30),(22,24)]
+pnls = {f"{t1}-{t2}": [0] for t1,t2 in pairs}
+positions = {f"{t1}-{t2}": [(0,0)] for t1,t2 in pairs}
 
 def calcPL(prcHist):
     cash = 0
@@ -52,6 +57,16 @@ def calcPL(prcHist):
         totDVolume += dvolume
         comm = dvolume * commRate
         cash -= curPrices.dot(deltaPos) + comm
+
+        for pair in pairs:
+            t1, t2 = pair
+            key = f"{t1}-{t2}"
+            dvol = np.sum(deltaPos[[t1,t2]])
+            comm = dvol * commRate
+            dcash = comm + curPrices[[t1,t2]].dot(deltaPos[[t1,t2]])
+            pnls[key].append(pnls[key][-1] - dcash)
+            positions[key].append((newPos[t1], newPos[t2]))
+
         curPos = np.array(newPos)
         posValue = curPos.dot(curPrices)
         todayPL = cash + posValue - value
@@ -64,6 +79,8 @@ def calcPL(prcHist):
         prices.append(curPrices[ticker])
         values.append(value)
         volumes.append(curPos[ticker])
+
+
         # print("Day %d value: %.2lf todayPL: $%.2lf $-traded: %.0lf return: %.5lf" %
         #       (t, value, todayPL, totDVolume, ret))
     pll = np.array(todayPLL)
@@ -85,8 +102,18 @@ print("annSharpe(PL): %.2lf " % sharpe)
 print("totDvolume: %.0lf " % dvol)
 print("Score: %.2lf" % score)
 
-fig, ax = plt.subplots(3,1)
-ax[0].plot(values)
-ax[1].plot(prices)
-ax[2].plot(volumes)
-plt.show()
+fig, ax = plt.subplots(len(pairs)+1,2, figsize=(20,len(pairs)*4))
+fig.tight_layout()
+ax[0,0].plot(values)
+
+for i,p in enumerate(pairs):
+    t1,t2 = p
+    key = f"{t1}-{t2}"
+    ax[i+1,0].title.set_text(key)
+    ax[i+1,0].plot(pnls[key], label=key)
+    ax[i+1,1].plot(positions[key], label=key)
+
+# ax[1].plot(prices)
+# ax[2].plot(volumes)
+# plt.show()
+fig.savefig('out.png')
