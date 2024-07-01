@@ -61,8 +61,9 @@ def calcPL(prcHist):
         for pair in pairs:
             t1, t2 = pair
             key = f"{t1}-{t2}"
-            dvol = np.sum(deltaPos[[t1,t2]])
+            dvol = np.sum(curPrices[[t1,t2]] * np.abs(deltaPos[[t1,t2]]))
             comm = dvol * commRate
+            assert comm >= 0
             dcash = comm + curPrices[[t1,t2]].dot(deltaPos[[t1,t2]])
             pnls[key].append(pnls[key][-1] - dcash)
             positions[key].append((newPos[t1], newPos[t2]))
