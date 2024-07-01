@@ -13,6 +13,115 @@ LIMIT = 10000
 INF = 1000000000
 COMM_RATE = 0.0010
 
+# GLOBALS
+priceMeans = {
+    0: 13.845619999999998,
+    1: 69.03374000000001,
+    2: 47.26258,
+    3: 48.00478,
+    4: 55.496120000000005,
+    5: 11.7407,
+    6: 18.177199999999996,
+    7: 46.7828,
+    8: 68.5373,
+    9: 50.185100000000006,
+    10: 34.991279999999996,
+    11: 26.655479999999997,
+    12: 26.612,
+    13: 48.495039999999996,
+    14: 14.77168,
+    15: 25.024019999999997,
+    16: 35.25014,
+    17: 45.08558,
+    18: 13.722539999999999,
+    19: 30.998019999999997,
+    20: 64.69341999999999,
+    21: 22.44104,
+    22: 67.5549,
+    23: 29.657559999999997,
+    24: 63.297619999999995,
+    25: 54.63196,
+    26: 59.677859999999995,
+    27: 28.912860000000002,
+    28: 51.157979999999995,
+    29: 31.24322,
+    30: 13.47922,
+    31: 66.98914,
+    32: 54.52396000000001,
+    33: 42.46486,
+    34: 24.871520000000004,
+    35: 67.15796,
+    36: 36.1705,
+    37: 38.82432,
+    38: 21.555519999999998,
+    39: 49.21754,
+    40: 31.651400000000002,
+    41: 63.25164000000001,
+    42: 12.502360000000001,
+    43: 60.843540000000004,
+    44: 36.52358,
+    45: 52.46146,
+    46: 57.53716,
+    47: 34.42736,
+    48: 41.27304,
+    49: 56.123619999999995
+}
+
+priceStds = {
+    0: 0.7487449857644556,
+    1: 3.9081870047027505,
+    2: 0.6144378009387482,
+    3: 2.0514944334364746,
+    4: 1.7339159942021123,
+    5: 0.6358842721873459,
+    6: 0.2997710549248235,
+    7: 1.266560108726797,
+    8: 0.5858430969709701,
+    9: 3.207362176971684,
+    10: 3.131638593797874,
+    11: 2.4741732834369032,
+    12: 0.5680646044153597,
+    13: 1.9269707394928768,
+    14: 0.8162026409551763,
+    15: 1.1686007423367402,
+    16: 0.4320536089909262,
+    17: 0.46156640984955,
+    18: 0.6975581144579226,
+    19: 2.3644529081183703,
+    20: 5.786327996836503,
+    21: 0.5517758889833141,
+    22: 2.474040570299318,
+    23: 1.5613213298325173,
+    24: 0.8466383694691109,
+    25: 9.948234138949823,
+    26: 4.129548445184079,
+    27: 0.4951840414126242,
+    28: 0.38532930975194174,
+    29: 0.7848683126080914,
+    30: 0.76818031319943,
+    31: 2.2172782653993672,
+    32: 2.1043823722739825,
+    33: 2.651297897536783,
+    34: 1.8630766486641377,
+    35: 10.17399521307098,
+    36: 2.9614391423068573,
+    37: 1.8938973128613195,
+    38: 0.2559236672269562,
+    39: 0.231601872303548,
+    40: 0.771222671358691,
+    41: 7.833634211547067,
+    42: 0.9402253335001727,
+    43: 1.898022087355196,
+    44: 1.5619817404550635,
+    45: 0.7562138501603557,
+    46: 4.548283819839261,
+    47: 0.8781686573668883,
+    48: 3.8149081518188126,
+    49: 1.1780585467110527
+}
+
+currentPos = np.zeros(50)
+oldPos = np.zeros(50)
 
 # UTIL FUNCITONS
 def setVolume(newVolume, price):
@@ -20,7 +129,29 @@ def setVolume(newVolume, price):
         return int(min(LIMIT // price, newVolume))
     else:
         return int(max(-LIMIT // price, newVolume))
+    
+# Util functions to keep track of profit (cash + position value) for each ticker
+# Need to be called once every iteration to ensure updated
+tickers__cash = np.zeros(50)
+tickers__posVal = np.zeros(50)
+def trackTickerProfit(prices):
+    global currentPos, oldPos
+    changePost = currentPos - oldPos
+    for i in range(50):
+        if changePost[i] == 0:
+            continue
+        comm = COMM_RATE * abs(changePost[i])
+        tickers__cash[i] -= (comm + changePost[i] * prices[i][-1])
+        tickers__posVal[i] = currentPos[i] * prices[i][-1]
 
+def clampLimit(currentPos, df, ticker):
+    # check for limits
+    i = ticker
+    pos, val = currentPos[i], df[i].values[-1]
+    if pos * val > 10000:
+        currentPos[i] = int(10000 / val)
+    if pos * val < -10000:
+        currentPos[i] = int(-10000 / val)
 
 def safetyCheck(currentPos, prices, df, ticker, priceMean, priceStd):
     # If the current mean is outside the +2.5std extreme,
@@ -32,15 +163,9 @@ def safetyCheck(currentPos, prices, df, ticker, priceMean, priceStd):
 
         if not (lower < currentMean < upper):
             currentPos[ticker] = 0
-
-    # check for limits
-    i = ticker
-    pos, val = currentPos[i], df[i].values[-1]
-    if pos * val > 10000:
-        currentPos[i] = int(10000 / val)
-    if pos * val < -10000:
-        currentPos[i] = int(-10000 / val)
-
+    
+    # Check for limit
+    clampLimit(currentPos, df, ticker)
 
 # PAIR TRADING FUNCTIONS
 SCALER = 2
@@ -246,115 +371,6 @@ def predict(currentPos, df, ticker, indices, lags, deg, shift=0):
 ### IMPLEMENT 'getMyPosition' FUNCTION #############
 ### TO RUN, RUN 'eval.py' ##########################
 
-priceMeans = {
-    0: 13.845619999999998,
-    1: 69.03374000000001,
-    2: 47.26258,
-    3: 48.00478,
-    4: 55.496120000000005,
-    5: 11.7407,
-    6: 18.177199999999996,
-    7: 46.7828,
-    8: 68.5373,
-    9: 50.185100000000006,
-    10: 34.991279999999996,
-    11: 26.655479999999997,
-    12: 26.612,
-    13: 48.495039999999996,
-    14: 14.77168,
-    15: 25.024019999999997,
-    16: 35.25014,
-    17: 45.08558,
-    18: 13.722539999999999,
-    19: 30.998019999999997,
-    20: 64.69341999999999,
-    21: 22.44104,
-    22: 67.5549,
-    23: 29.657559999999997,
-    24: 63.297619999999995,
-    25: 54.63196,
-    26: 59.677859999999995,
-    27: 28.912860000000002,
-    28: 51.157979999999995,
-    29: 31.24322,
-    30: 13.47922,
-    31: 66.98914,
-    32: 54.52396000000001,
-    33: 42.46486,
-    34: 24.871520000000004,
-    35: 67.15796,
-    36: 36.1705,
-    37: 38.82432,
-    38: 21.555519999999998,
-    39: 49.21754,
-    40: 31.651400000000002,
-    41: 63.25164000000001,
-    42: 12.502360000000001,
-    43: 60.843540000000004,
-    44: 36.52358,
-    45: 52.46146,
-    46: 57.53716,
-    47: 34.42736,
-    48: 41.27304,
-    49: 56.123619999999995
-}
-
-priceStds = {
-    0: 0.7487449857644556,
-    1: 3.9081870047027505,
-    2: 0.6144378009387482,
-    3: 2.0514944334364746,
-    4: 1.7339159942021123,
-    5: 0.6358842721873459,
-    6: 0.2997710549248235,
-    7: 1.266560108726797,
-    8: 0.5858430969709701,
-    9: 3.207362176971684,
-    10: 3.131638593797874,
-    11: 2.4741732834369032,
-    12: 0.5680646044153597,
-    13: 1.9269707394928768,
-    14: 0.8162026409551763,
-    15: 1.1686007423367402,
-    16: 0.4320536089909262,
-    17: 0.46156640984955,
-    18: 0.6975581144579226,
-    19: 2.3644529081183703,
-    20: 5.786327996836503,
-    21: 0.5517758889833141,
-    22: 2.474040570299318,
-    23: 1.5613213298325173,
-    24: 0.8466383694691109,
-    25: 9.948234138949823,
-    26: 4.129548445184079,
-    27: 0.4951840414126242,
-    28: 0.38532930975194174,
-    29: 0.7848683126080914,
-    30: 0.76818031319943,
-    31: 2.2172782653993672,
-    32: 2.1043823722739825,
-    33: 2.651297897536783,
-    34: 1.8630766486641377,
-    35: 10.17399521307098,
-    36: 2.9614391423068573,
-    37: 1.8938973128613195,
-    38: 0.2559236672269562,
-    39: 0.231601872303548,
-    40: 0.771222671358691,
-    41: 7.833634211547067,
-    42: 0.9402253335001727,
-    43: 1.898022087355196,
-    44: 1.5619817404550635,
-    45: 0.7562138501603557,
-    46: 4.548283819839261,
-    47: 0.8781686573668883,
-    48: 3.8149081518188126,
-    49: 1.1780585467110527
-}
-
-currentPos = np.zeros(50)
-
-
 def test_threshold(spread):
     # copy and pasted
     # https://www.quantconnect.com/docs/v2/research-environment/applying-research/kalman-filters-and-stat-arb
@@ -380,6 +396,7 @@ def test_threshold(spread):
 
 direction_mean = defaultdict(lambda: 0)
 def mean_trade(df, tickers, beta):
+    global currentPos
     spread = np.log(df.iloc[-200:])[tickers] @ beta
     normalized = spread.values[-1] - np.mean(spread)
 
@@ -406,10 +423,37 @@ def mean_trade(df, tickers, beta):
         direction_mean[tuple(tickers)] = 0
         for i,t in enumerate(tickers):
             currentPos[t] = 0
+    
+    safe_mean_trade(currentPos, tickers)
 
+# Safety: Turn off the mean trade if PnL is below -1k for the group of tickers
+safe_mean_trade__fail = defaultdict(lambda: False)
+def safe_mean_trade(currentPos, tickers):
+    global tickers__cash, tickers__posVal
+    tickers = tuple(tickers)
+    # If got below 1.5k, something is wrong with the strategy. Turns it off.
+    if (safe_mean_trade__fail[tickers] == True):
+        for ticker in tickers:
+            currentPos[ticker] = 0
+        return
+
+    # Check if got below -1.5k
+    SAFETY_THRESHOLD = -1500
+    totalPL = 0
+    for ticker in tickers:
+        totalPL += tickers__cash[ticker] + tickers__posVal[ticker]
+    if totalPL < SAFETY_THRESHOLD:
+        safe_mean_trade__fail[tickers] = True
+        for ticker in tickers:
+            currentPos[ticker] = 0
+    
+    return
+
+    
 
 direction = defaultdict(lambda: 0)
 def pair_trade(df, t1, t2, beta, threshold=0):
+    global currentPos
     spread = np.log(df.iloc[-200:])[[t1, t2]] @ beta
     normalized = spread.values[-1] - np.mean(spread)
 
@@ -435,7 +479,12 @@ def pair_trade(df, t1, t2, beta, threshold=0):
     elif normalized < -threshold/2 and direction[(t1,t2)] == -1 or normalized > threshold/2 and direction[(t1,t2)] == 1:
         direction[(t1,t2)] = 0
         currentPos[t1] = currentPos[t2] = 0
+    
+    safe_pair_trade(currentPos, t1, t2)
 
+# Safety: Turn off the pair trade if PnL is below -1k
+def safe_pair_trade(currentPos, t1, t2):
+    safe_mean_trade(currentPos, tuple((t1, t2)))
 
 #### ignore this ####
 pairs = []
@@ -508,11 +557,14 @@ def automatic_rebalance(df):
 
 
 def getMyPosition(prices):
-    global currentPos, first
+    global currentPos, oldPos
 
     nins, nt = prices.shape
 
     df = pd.DataFrame(prices.T, columns=np.arange(50))
+
+    trackTickerProfit(prices)
+    oldPos = np.copy(currentPos)
 
     if True:
         # better_pair(prices, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958,
