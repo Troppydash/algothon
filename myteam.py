@@ -3,8 +3,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import statsmodels.tsa.ardl as ardl
-from arch.unitroot.cointegration import engle_granger
-import scipy
+
 
 # UTIL
 # CONSTANTS
@@ -505,6 +504,8 @@ pairs = []
 
 
 def automatic_rebalance(df):
+    from arch.unitroot.cointegration import engle_granger
+    import scipy
     global currentPos, pairs
 
     pairs = []
@@ -644,7 +645,7 @@ def getMyPosition(prices):
         # movingAvg(currentPos, prices, 15, 25.024019999999997, 1.1686007423367402, 20, 10, 0)
 
     # Run safety check on all tickers
-    for i in range(50):
+    for i in [8,3,6]:
         safetyCheck(currentPos, prices, df, i, priceMeans[i], priceStds[i])
 
     trackTickerProfit(prices)
