@@ -377,8 +377,10 @@ def test_threshold(spread):
     return threshold
 
 
-def pair_trade(df, t1, t2, beta, threshold):
-    spread = np.log(df.iloc[-250:])[[t1, t2]] @ beta
+
+direction_mean = defaultdict(lambda: 0)
+def mean_trade(df, tickers, beta):
+    spread = np.log(df.iloc[-200:])[tickers] @ beta
     normalized = spread.values[-1] - np.mean(spread)
 
     threshold = test_threshold(spread)
@@ -387,15 +389,50 @@ def pair_trade(df, t1, t2, beta, threshold):
     dollars = min([abs(10000 / b) for b in beta])
 
     if normalized < -threshold:
+        direction_mean[tuple(tickers)] = 1
+        # buy
+        for i,t in enumerate(tickers):
+            currentPos[t] = np.sign(beta[i]) * int(dollars / df[t].values[-1])
+
+    elif normalized > threshold:
+        direction_mean[tuple(tickers)] = -1
+
+        # sell
+        for i,t in enumerate(tickers):
+            currentPos[t] = -np.sign(beta[i]) * int(dollars / df[t].values[-1])
+
+    elif normalized < 0 and direction_mean[tuple(tickers)] == -1 or normalized > 0 and direction_mean[tuple(tickers)] == 1:
+        direction_mean[tuple(tickers)] = 0
+        for i,t in enumerate(tickers):
+            currentPos[t] = 0
+
+
+direction = defaultdict(lambda: 0)
+def pair_trade(df, t1, t2, beta, threshold=0):
+    spread = np.log(df.iloc[-200:])[[t1, t2]] @ beta
+    normalized = spread.values[-1] - np.mean(spread)
+
+    threshold = test_threshold(spread)
+
+    # beta adjusted amount
+    dollars = min([abs(10000 / b) for b in beta])
+
+    if normalized < -threshold:
+        direction[(t1,t2)] = 1
         # buy
         currentPos[t1] = np.sign(beta[0]) * int(dollars / df[t1].values[-1])
         currentPos[t2] = np.sign(beta[1]) * int(dollars / df[t2].values[-1])
 
-    if normalized > threshold:
+    elif normalized > threshold:
+        direction[(t1,t2)] = -1
+
         # sell
         currentPos[t1] = -np.sign(beta[0]) * int(dollars / df[t1].values[-1])
         currentPos[t2] = -np.sign(beta[1]) * int(dollars / df[t2].values[-1])
 
+    elif normalized < -threshold/2 and direction[(t1,t2)] == -1 or normalized > threshold/2 and direction[(t1,t2)] == 1:
+        direction[(t1,t2)] = 0
+        currentPos[t1] = currentPos[t2] = 0
 
 
 #### ignore this ####
@@ -476,36 +513,39 @@ def getMyPosition(prices):
     df = pd.DataFrame(prices.T, columns=np.arange(50))
 
     if True:
+        better_pair(prices, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958,
+                    -8.603364425168959, 7.0, 8.0, 0.6)
+        better_pair(prices, 14, 30, 0.7192064351085297, 4.86640231, 5.15640231, 5.44640231, 6, 4)
+        better_pair(prices, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299,
+                    39.807363604822996,
+                    12.0, 2.0, 0.8)
+        currentPos = better_pair_aggregate(currentPos)
+
+    if True:
         # using
         # https://www.quantconnect.com/docs/v2/research-environment/applying-research/kalman-filters-and-stat-arb
         # and
         # https://www.quantconnect.com/docs/v2/research-environment/applying-research/pca-and-pairs-trading
-        pair_trade(df, 28, 39, [0.44252868, -0.55747132], 0.004284118529430076)
         pair_trade(df, 11, 42, [0.45263609, -0.54736391], 0.026805109292277557)
-        # pair_trade(df, 43, 49, [0.76665861, -0.23334139], 0.026037684477430514)
-        pair_trade(df, 15, 20, [0.65823955, -0.34176045], 0.016616582691500358)
         pair_trade(df, 1, 10, [0.63057265, -0.36942735], 0.019607962852651883)
-        # pair_trade(df, 7, 8, [0.716636926298735, 0.283363073701265], 0.016383818530087586)
-        pair_trade(df, 14, 30, [0.4915488589318795, -0.5084511410681205], 0.02932359883659904)
-        pair_trade(df, 22, 24, [0.27518547, -0.72481453], 0.02491816238227969)
-        # pair_trade(df, 25, 36, [0.31646192899893494, -0.683538071001065], 0.04435354291545579)
-        # pair_trade(df, 31, 40, [0.45598580541716144, 0.5440141945828386], 0.007796157589041078)
-        pair_trade(df, 33, 37, [0.337992242628923, -0.662007757371077], 0.008144572661827587)
         pair_trade(df, 4, 32, [0.4989909853629603, -0.5010090146370396], 0.008144572661827587)
-        # pair_trade(df, 9, 46, [0.5083001930523317, -0.4916998069476684], 0.01612675281519143)
-        # pair_trade(df, 13, 45, [0.5042841098279663, -0.49571589017203366], 0.01612675281519143)
-        # pair_trade(df, 44, 47, [0.49488551387751106, -0.505114486122489], 0.01612675281519143)
+        pair_trade(df, 24, 49, [0.4927626542556702, -0.5072373457443298])
+        pair_trade(df, 22, 47, [0.4570128708881386, -0.5429871291118614])
+
+    if True:
+        mean_trade(df, [15,16,38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
+        mean_trade(df, [9,21,35], [0.32971776797284735, -0.5696967968104495, -0.10058543521670305])
 
     if True:
         # LEAD LAG TRADE:
-        predict(currentPos, df, 38, list(range(50)), 1, 1.1)
+        # predict(currentPos, df, 38, list(range(50)), 1, 1.1)
         predict(currentPos, df, 27, list(range(50)), 1, 1.1)
 
         # SINGLE TRADE:
         # SAFE TICKERS: Gain positive PL and score on themselves and overall
         # For ticker 8, simple mean reversion (TODO: See if there is a better way)
         # Increase performance by .1
-        # meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
+        meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
 
         # # Ticker 27: Slow, significant trend. Increase performance by .2
         movingAvg(currentPos, prices, 27, 28.912860, 0.495184, 40, 20, threshold=0.1)

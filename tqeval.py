@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-from team import getMyPosition as getPosition
+from myteam import getMyPosition as getPosition
 import matplotlib.pyplot as plt
 
 nInst = 0
@@ -23,7 +23,7 @@ prcAll = loadPrices(pricesFile)
 print("Loaded %d instruments for %d days" % (nInst, nt))
 
 start = np.random.randint(1, 250)
-start = 250
+start = 200
 ticker = 32
 
 values = []
@@ -31,8 +31,10 @@ prices = []
 volumes = []
 
 # pairs = [(28,39), (11,42),(43,49),(15,20),(1,10),(7,8),(14,30),(22,24),(25,36),(31,40),(33,37),(4,32),(9,46),(13,45),(44,47)]
+pairs = [(11,42),(1,10),(33,37),(4,32),(28,39),(14,30),(24,49),(22,47),(7,48)]
 # pairs = [(12,34),(12,25),(7,48), (7,19), (28,39), (28,41), (2,11), (11,42), (43,49),(14,30),(22,24)]
-pairs = [(12,34),(7,48), (28,39), (2,11), (43,49),(14,30),(22,24)]
+# pairs = [(12,34),(7,48), (28,39), (2,11), (43,49),(14,30),(22,24)]
+cashes = {f"{t1}-{t2}": [0] for t1,t2 in pairs}
 pnls = {f"{t1}-{t2}": [0] for t1,t2 in pairs}
 positions = {f"{t1}-{t2}": [(0,0)] for t1,t2 in pairs}
 
@@ -45,7 +47,7 @@ def calcPL(prcHist):
     value = 0
     todayPLL = []
     (_, nt) = prcHist.shape
-    for t in range(start, start+251):
+    for t in range(start, start+301):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]
@@ -65,7 +67,9 @@ def calcPL(prcHist):
             comm = dvol * commRate
             assert comm >= 0
             dcash = comm + curPrices[[t1,t2]].dot(deltaPos[[t1,t2]])
-            pnls[key].append(pnls[key][-1] - dcash)
+            cashes[key].append(cashes[key][-1] - dcash)
+            pvalue = newPos[[t1,t2]].dot(curPrices[[t1,t2]])
+            pnls[key].append(cashes[key][-1] + pvalue)
             positions[key].append((newPos[t1], newPos[t2]))
 
         curPos = np.array(newPos)
@@ -88,7 +92,7 @@ def calcPL(prcHist):
     (plmu, plstd) = (np.mean(pll), np.std(pll))
     annSharpe = 0.0
     if (plstd > 0):
-        annSharpe = np.sqrt(250) * plmu / plstd
+        annSharpe = np.sqrt(100) * plmu / plstd
     return (plmu, ret, plstd, annSharpe, totDVolume)
 
 
