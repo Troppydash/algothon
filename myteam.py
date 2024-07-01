@@ -6,7 +6,6 @@ import statsmodels.tsa.ardl as ardl
 from arch.unitroot.cointegration import engle_granger
 import scipy
 
-
 # UTIL
 # CONSTANTS
 LIMIT = 10000
@@ -123,26 +122,29 @@ priceStds = {
 currentPos = np.zeros(50)
 oldPos = np.zeros(50)
 
+
 # UTIL FUNCITONS
 def setVolume(newVolume, price):
     if newVolume > 0:
         return int(min(LIMIT // price, newVolume))
     else:
         return int(max(-LIMIT // price, newVolume))
-    
+
+
 # Util functions to keep track of profit (cash + position value) for each ticker
 # Need to be called once every iteration to ensure updated
 tickers__cash = np.zeros(50)
 tickers__posVal = np.zeros(50)
+
+
 def trackTickerProfit(prices):
     global currentPos, oldPos
     changePost = currentPos - oldPos
     for i in range(50):
-        if changePost[i] == 0:
-            continue
-        comm = COMM_RATE * abs(changePost[i])
+        comm = COMM_RATE * abs(changePost[i]) * prices[i][-1]
         tickers__cash[i] -= (comm + changePost[i] * prices[i][-1])
         tickers__posVal[i] = currentPos[i] * prices[i][-1]
+
 
 def clampLimit(currentPos, df, ticker):
     # check for limits
@@ -152,6 +154,7 @@ def clampLimit(currentPos, df, ticker):
         currentPos[i] = int(10000 / val)
     if pos * val < -10000:
         currentPos[i] = int(-10000 / val)
+
 
 def safetyCheck(currentPos, prices, df, ticker, priceMean, priceStd):
     # If the current mean is outside the +2.5std extreme,
@@ -163,9 +166,10 @@ def safetyCheck(currentPos, prices, df, ticker, priceMean, priceStd):
 
         if not (lower < currentMean < upper):
             currentPos[ticker] = 0
-    
+
     # Check for limit
     clampLimit(currentPos, df, ticker)
+
 
 # PAIR TRADING FUNCTIONS
 SCALER = 2
@@ -393,8 +397,9 @@ def test_threshold(spread):
     return threshold
 
 
-
 direction_mean = defaultdict(lambda: 0)
+
+
 def mean_trade(df, tickers, beta):
     global currentPos
     spread = np.log(df.iloc[-200:])[tickers] @ beta
@@ -409,25 +414,29 @@ def mean_trade(df, tickers, beta):
     if normalized < -threshold:
         direction_mean[tuple(tickers)] = 1
         # buy
-        for i,t in enumerate(tickers):
+        for i, t in enumerate(tickers):
             currentPos[t] = int(beta[i] * unit)
 
     elif normalized > threshold:
         direction_mean[tuple(tickers)] = -1
 
         # sell
-        for i,t in enumerate(tickers):
+        for i, t in enumerate(tickers):
             currentPos[t] = -int(beta[i] * unit)
 
-    elif normalized < 0 and direction_mean[tuple(tickers)] == -1 or normalized > 0 and direction_mean[tuple(tickers)] == 1:
+    elif normalized < 0 and direction_mean[tuple(tickers)] == -1 or normalized > 0 and direction_mean[
+        tuple(tickers)] == 1:
         direction_mean[tuple(tickers)] = 0
-        for i,t in enumerate(tickers):
+        for i, t in enumerate(tickers):
             currentPos[t] = 0
-    
+
     safe_mean_trade(currentPos, tickers)
+
 
 # Safety: Turn off the mean trade if PnL is below -1k for the group of tickers
 safe_mean_trade__fail = defaultdict(lambda: False)
+
+
 def safe_mean_trade(currentPos, tickers):
     global tickers__cash, tickers__posVal
     tickers = tuple(tickers)
@@ -442,16 +451,18 @@ def safe_mean_trade(currentPos, tickers):
     totalPL = 0
     for ticker in tickers:
         totalPL += tickers__cash[ticker] + tickers__posVal[ticker]
+
     if totalPL < SAFETY_THRESHOLD:
         safe_mean_trade__fail[tickers] = True
         for ticker in tickers:
             currentPos[ticker] = 0
-    
+
     return
 
-    
 
 direction = defaultdict(lambda: 0)
+
+
 def pair_trade(df, t1, t2, beta, threshold=0):
     global currentPos
     spread = np.log(df.iloc[-200:])[[t1, t2]] @ beta
@@ -461,33 +472,38 @@ def pair_trade(df, t1, t2, beta, threshold=0):
 
     # beta adjusted amount
 
-    unit = min(10000 / df[t].values[-1] / abs(b) for t, b in zip([t1,t2], beta))
+    unit = min(10000 / df[t].values[-1] / abs(b) for t, b in zip([t1, t2], beta))
 
     if normalized < -threshold:
-        direction[(t1,t2)] = 1
+        direction[(t1, t2)] = 1
         # buy
         currentPos[t1] = int(beta[0] * unit)
         currentPos[t2] = int(beta[1] * unit)
 
     elif normalized > threshold:
-        direction[(t1,t2)] = -1
+        direction[(t1, t2)] = -1
 
         # sell
         currentPos[t1] = -int(beta[0] * unit)
         currentPos[t2] = -int(beta[1] * unit)
 
-    elif normalized < -threshold/2 and direction[(t1,t2)] == -1 or normalized > threshold/2 and direction[(t1,t2)] == 1:
-        direction[(t1,t2)] = 0
+    elif normalized < -threshold / 2 and direction[(t1, t2)] == -1 or normalized > threshold / 2 and \
+            direction[(t1, t2)] == 1:
+        direction[(t1, t2)] = 0
         currentPos[t1] = currentPos[t2] = 0
-    
+
     safe_pair_trade(currentPos, t1, t2)
+
 
 # Safety: Turn off the pair trade if PnL is below -1k
 def safe_pair_trade(currentPos, t1, t2):
-    safe_mean_trade(currentPos, tuple((t1, t2)))
+    safe_mean_trade(currentPos, [t1, t2])
+
 
 #### ignore this ####
 pairs = []
+
+
 def automatic_rebalance(df):
     global currentPos, pairs
 
@@ -563,7 +579,6 @@ def getMyPosition(prices):
 
     df = pd.DataFrame(prices.T, columns=np.arange(50))
 
-    trackTickerProfit(prices)
     oldPos = np.copy(currentPos)
 
     if True:
@@ -587,10 +602,10 @@ def getMyPosition(prices):
         pair_trade(df, 22, 47, [0.4570128708881386, -0.5429871291118614])
 
     if True:
-        mean_trade(df, [15,16,38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
-        mean_trade(df, [9,21,35], [0.32971776797284735, -0.5696967968104495, -0.10058543521670305])
-        mean_trade(df, [7,17,25], [0.38177208101532123, 0.5859183559138036, 0.03230956307087521])
-        mean_trade(df, [27,40,44], [0.5904390715664551, -0.30280905334000785, -0.10675187509353694])
+        mean_trade(df, [15, 16, 38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
+        mean_trade(df, [9, 21, 35], [0.32971776797284735, -0.5696967968104495, -0.10058543521670305])
+        mean_trade(df, [7, 17, 25], [0.38177208101532123, 0.5859183559138036, 0.03230956307087521])
+        mean_trade(df, [27, 40, 44], [0.5904390715664551, -0.30280905334000785, -0.10675187509353694])
 
     if True:
         # LEAD LAG TRADE:
@@ -632,9 +647,12 @@ def getMyPosition(prices):
     for i in range(50):
         safetyCheck(currentPos, prices, df, i, priceMeans[i], priceStds[i])
 
+    trackTickerProfit(prices)
+
     return currentPos
 
 
 if __name__ == "__main__":
     from custom_eval.alleval import all_eval
+
     all_eval(currentPos, getMyPosition, 10)
