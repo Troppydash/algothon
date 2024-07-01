@@ -460,7 +460,6 @@ def safe_mean_trade(currentPos, tickers):
         safe_mean_trade__fail[tickers] = True
         for ticker in tickers:
             currentPos[ticker] = 0
-    print("total", totalPL)
     return
 
 
