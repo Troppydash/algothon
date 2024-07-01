@@ -284,6 +284,11 @@ def movingAvg(currentPos, prices, ticker: int, priceMean, priceStd, longPeriod=3
     preTrends[ticker] = trend
 
     # print("Position: ", currentPos[ticker])
+    safe_moving_average(currentPos, ticker)
+
+
+def safe_moving_average(currentPos, ticker):
+    safe_mean_trade(currentPos, [ticker])    
 
 
 # Very simple mean reversion
