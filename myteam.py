@@ -652,6 +652,10 @@ def getMyPosition(prices):
     for i in [8,6]:
         safetyCheck(currentPos, prices, df, i, priceMeans[i], priceStds[i])
 
+    # Clamp the limit
+    for i in range(50):
+        clampLimit(currentPos, df, i)
+
     trackTickerProfit(prices)
 
     return currentPos
