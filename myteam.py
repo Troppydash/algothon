@@ -503,78 +503,78 @@ def safe_pair_trade(currentPos, t1, t2):
     safe_mean_trade(currentPos, [t1, t2])
 
 
-#### ignore this ####
-pairs = []
+# #### ignore this ####
+# pairs = []
 
 
-def automatic_rebalance(df):
-    from arch.unitroot.cointegration import engle_granger
-    import scipy
-    global currentPos, pairs
+# def automatic_rebalance(df):
+#     from arch.unitroot.cointegration import engle_granger
+#     import scipy
+#     global currentPos, pairs
 
-    pairs = []
-    currentPos = np.zeros(50)
+#     pairs = []
+#     currentPos = np.zeros(50)
 
-    print('a')
-    size = df.shape[0]
-    start = int(0.7 * size)
-    train = df.iloc[-size:-start, :]
-    test = df.iloc[-start:, :]
-    logprice = np.log(train)
-    noted = []
-    for i in range(50):
-        for j in range(i + 1, 50):
-            t1, t2 = i, j
-            result = engle_granger(logprice[t1], logprice[t2], trend='c', method='bic')
-            if result.pvalue < 0.15:
-                beta = result.cointegrating_vector[:2].values
-                noted.append((t1, t2, result.pvalue, beta))
+#     print('a')
+#     size = df.shape[0]
+#     start = int(0.7 * size)
+#     train = df.iloc[-size:-start, :]
+#     test = df.iloc[-start:, :]
+#     logprice = np.log(train)
+#     noted = []
+#     for i in range(50):
+#         for j in range(i + 1, 50):
+#             t1, t2 = i, j
+#             result = engle_granger(logprice[t1], logprice[t2], trend='c', method='bic')
+#             if result.pvalue < 0.15:
+#                 beta = result.cointegrating_vector[:2].values
+#                 noted.append((t1, t2, result.pvalue, beta))
 
-    used = set()
+#     used = set()
 
-    print('b')
+#     print('b')
 
-    # greedy selection
-    while len(noted) > 0:
-        noted = list(sorted(noted, key=lambda c: c[2]))
-        t1, t2, pval, beta = noted.pop(0)
+#     # greedy selection
+#     while len(noted) > 0:
+#         noted = list(sorted(noted, key=lambda c: c[2]))
+#         t1, t2, pval, beta = noted.pop(0)
 
-        if t1 in used or t2 in used:
-            continue
+#         if t1 in used or t2 in used:
+#             continue
 
-        # test
-        spread = (np.log(train))[[t1, t2]] @ beta
-        train_a = np.mean(spread)
-        normalized = spread - train_a
-        threshold = test_threshold(normalized)
+#         # test
+#         spread = (np.log(train))[[t1, t2]] @ beta
+#         train_a = np.mean(spread)
+#         normalized = spread - train_a
+#         threshold = test_threshold(normalized)
 
-        spread = (np.log(test))[[t1, t2]] @ beta
-        normalized = spread - train_a
+#         spread = (np.log(test))[[t1, t2]] @ beta
+#         normalized = spread - train_a
 
-        trading_weight = beta
-        trading_weight /= np.sum(abs(trading_weight))
+#         trading_weight = beta
+#         trading_weight /= np.sum(abs(trading_weight))
 
-        testing_ret = test[[t1, t2]].pct_change().iloc[1:].shift(-1)
-        equity = pd.DataFrame(np.ones((testing_ret.shape[0], 1)), index=testing_ret.index,
-                              columns=["Daily value"])
+#         testing_ret = test[[t1, t2]].pct_change().iloc[1:].shift(-1)
+#         equity = pd.DataFrame(np.ones((testing_ret.shape[0], 1)), index=testing_ret.index,
+#                               columns=["Daily value"])
 
-        retspread = normalized.iloc[1:]
-        buy_period = retspread[retspread < -threshold].dropna().index
-        sell_period = retspread[retspread > threshold].dropna().index
+#         retspread = normalized.iloc[1:]
+#         buy_period = retspread[retspread < -threshold].dropna().index
+#         sell_period = retspread[retspread > threshold].dropna().index
 
-        equity.loc[buy_period, "Daily value"] = (testing_ret.loc[buy_period] @ trading_weight + 1)
-        equity.loc[sell_period, "Daily value"] = (testing_ret.loc[sell_period] @ -trading_weight + 1)
+#         equity.loc[buy_period, "Daily value"] = (testing_ret.loc[buy_period] @ trading_weight + 1)
+#         equity.loc[sell_period, "Daily value"] = (testing_ret.loc[sell_period] @ -trading_weight + 1)
 
-        value = equity.cumprod()
-        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(np.arange(value.size),
-                                                                             value["Daily value"])
-        if r_value ** 2 > 0.9:
-            # select
-            used.add(t1)
-            used.add(t2)
-            pairs.append((t1, t2, list(trading_weight.T), threshold))
+#         value = equity.cumprod()
+#         slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(np.arange(value.size),
+#                                                                              value["Daily value"])
+#         if r_value ** 2 > 0.9:
+#             # select
+#             used.add(t1)
+#             used.add(t2)
+#             pairs.append((t1, t2, list(trading_weight.T), threshold))
 
-    print(len(pairs))
+#     print(len(pairs))
 
 
 def getMyPosition(prices):
@@ -586,7 +586,7 @@ def getMyPosition(prices):
 
     oldPos = np.copy(currentPos)
 
-    if True:
+    if False:
         # better_pair(prices, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958,
         #             -8.603364425168959, 7.0, 8.0, 0.6)
         better_pair(prices, 14, 30, 0.7192064351085297, 4.86640231, 5.15640231, 5.44640231, 6, 4)
@@ -595,7 +595,7 @@ def getMyPosition(prices):
         #             12.0, 2.0, 0.8)
         currentPos = better_pair_aggregate(currentPos)
 
-    if True:
+    if False:
         # using
         # https://www.quantconnect.com/docs/v2/research-environment/applying-research/kalman-filters-and-stat-arb
         # and
@@ -606,7 +606,7 @@ def getMyPosition(prices):
         pair_trade(df, 24, 49, [0.4927626542556702, -0.5072373457443298])
         pair_trade(df, 22, 47, [0.4570128708881386, -0.5429871291118614])
 
-    if True:
+    if False:
         mean_trade(df, [15, 16, 38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
         mean_trade(df, [9, 21, 35], [0.32971776797284735, -0.5696967968104495, -0.10058543521670305])
         mean_trade(df, [7, 17, 25], [0.38177208101532123, 0.5859183559138036, 0.03230956307087521])
@@ -614,8 +614,8 @@ def getMyPosition(prices):
 
     if True:
         # LEAD LAG TRADE:
-        # predict(currentPos, df, 38, list(range(50)), 1, 1.1)
-        # predict(currentPos, df, 27, list(range(50)), 1, 1.1)
+        predict(currentPos, df, 38, list(range(50)), 1, 1.1)
+        predict(currentPos, df, 27, list(range(50)), 1, 1.1)
 
         # SINGLE TRADE:
         # SAFE TICKERS: Gain positive PL and score on themselves and overall
@@ -628,19 +628,20 @@ def getMyPosition(prices):
         #
         # # Ticker 3: Moving average
         movingAvg(currentPos, prices, 3, 48.004780, 2.051494, 40, 20, threshold=0.2)
-        #
+        
+        # All of those hurts performance from 500 - 750
         # # Ticker 6: Confirmed stationary-ish with AD-fuller at 10% sig level
         # # Less risky, higher PL, but with higher Std, so lower score.
         # # Score is still positive, but around 40% of the score is negative
-        meanRevertStrict(currentPos, prices, 6, 18.177200, 0.299771)
-        #
-        # # RISKY STICKER: Gain positive PL, but std makes negative score individually.
-        # # Group them into groups => Diversification = Overall score improvements
-        #
+        # meanRevertStrict(currentPos, prices, 6, 18.177200, 0.299771)
+        
+        # RISKY STICKER: Gain positive PL, but std makes negative score individually.
+        # Group them into groups => Diversification = Overall score improvements
+        
         # # Ticker 4: Mean reversion (TODO: other strategy needs more careful investigation)
         # # Mean revert: Makes decent PL, but std varies due to the fluctuation of the price
         # meanRevertStrict(currentPos, prices, 4, 55.496120, 1.733916, 1.5)
-        #
+        
         # # Ticker 15: Too jaggy trend to fit ARIMA. Try using moving average for trend prediction.
         # # Can't do fair price with moving average on short window.
         # # Work for moving average with short window and low threshold due to the short trend cycle.
