@@ -595,15 +595,22 @@ def getMyPosition(prices):
         currentPos = better_pair_aggregate(currentPos)
 
     if True:
+        # Doesn't work since it doesn't mean revert in 500-750
         # using
         # https://www.quantconnect.com/docs/v2/research-environment/applying-research/kalman-filters-and-stat-arb
         # and
         # https://www.quantconnect.com/docs/v2/research-environment/applying-research/pca-and-pairs-trading
-        pair_trade(df, 11, 42, [0.45263609, -0.54736391], 0.026805109292277557)
-        pair_trade(df, 1, 10, [0.63057265, -0.36942735], 0.019607962852651883)
-        pair_trade(df, 4, 32, [0.4989909853629603, -0.5010090146370396], 0.008144572661827587)
-        pair_trade(df, 24, 49, [0.4927626542556702, -0.5072373457443298])
-        pair_trade(df, 22, 47, [0.4570128708881386, -0.5429871291118614])
+
+        # pair_trade(df, 11, 42, [0.45263609, -0.54736391], 0.026805109292277557)
+        # pair_trade(df, 1, 10, [0.63057265, -0.36942735], 0.019607962852651883)
+        # pair_trade(df, 4, 32, [0.4989909853629603, -0.5010090146370396], 0.008144572661827587)
+        # pair_trade(df, 24, 49, [0.4927626542556702, -0.5072373457443298])
+        # pair_trade(df, 22, 47, [0.4570128708881386, -0.5429871291118614])
+
+        # 14-18 works for 500 - 750, but not sure if this continues
+        pair_trade(df, 14, 18, [1.000000, -0.814115])
+
+        # Check rolling LS + johansen group of cointegrated assets
 
     if False:
         mean_trade(df, [15, 16, 38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
