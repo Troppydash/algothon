@@ -474,7 +474,6 @@ def pair_trade(df, t1, t2, beta, threshold=0):
     threshold = test_threshold(spread)
 
     # beta adjusted amount
-
     unit = min(10000 / df[t].values[-1] / abs(b) for t, b in zip([t1, t2], beta))
 
     if normalized < -threshold:
