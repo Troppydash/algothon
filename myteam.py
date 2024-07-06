@@ -595,7 +595,7 @@ def getMyPosition(prices):
         #             12.0, 2.0, 0.8)
         currentPos = better_pair_aggregate(currentPos)
 
-    if False:
+    if True:
         # using
         # https://www.quantconnect.com/docs/v2/research-environment/applying-research/kalman-filters-and-stat-arb
         # and
@@ -612,22 +612,22 @@ def getMyPosition(prices):
         mean_trade(df, [7, 17, 25], [0.38177208101532123, 0.5859183559138036, 0.03230956307087521])
         mean_trade(df, [27, 40, 44], [0.5904390715664551, -0.30280905334000785, -0.10675187509353694])
 
-    if True:
-        # LEAD LAG TRADE:
+    if False:
+        # # LEAD LAG TRADE:
         predict(currentPos, df, 38, list(range(50)), 1, 1.1)
         predict(currentPos, df, 27, list(range(50)), 1, 1.1)
 
-        # SINGLE TRADE:
-        # SAFE TICKERS: Gain positive PL and score on themselves and overall
-        # For ticker 8, simple mean reversion (TODO: See if there is a better way)
-        # Increase performance by .1
-        meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
+        # # SINGLE TRADE:
+        # # SAFE TICKERS: Gain positive PL and score on themselves and overall
+        # # For ticker 8, simple mean reversion (TODO: See if there is a better way)
+        # # Increase performance by .1
+        # meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
 
         # # Ticker 27: Slow, significant trend. Increase performance by .2
-        # movingAvg(currentPos, prices, 27, 28.912860, 0.495184, 40, 20, threshold=0.1)
-        #
+        # movingAvg(currentPos, prices, 27, 28.912860, 0.495184, 40, 20, threshold=0.05)
+        
         # # Ticker 3: Moving average
-        movingAvg(currentPos, prices, 3, 48.004780, 2.051494, 40, 20, threshold=0.2)
+        # movingAvg(currentPos, prices, 3, 48.004780, 2.051494, 40, 20, threshold=0.2)
         
         # All of those hurts performance from 500 - 750
         # # Ticker 6: Confirmed stationary-ish with AD-fuller at 10% sig level
