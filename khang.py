@@ -2,9 +2,10 @@ from collections import defaultdict
 
 import numpy as np
 import pandas as pd
-import statsmodels.tsa.ardl as ardl
 
+import statsmodels.tsa.ardl as ardl
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
+import statsmodels.api as sm
 
 
 # UTIL
@@ -488,22 +489,38 @@ def get_johansen(y, p):
 
     return jres
 
+# Return (a, b) for y = ax + b
+def linearReg(df, t1, t2):
+    df = np.log(df)
+
+    x = df[t1]
+    x_const = sm.add_constant(x)
+    y = df[t2]
+    linearModel = sm.OLS(y, x_const)
+    result = linearModel.fit()
+    return (result.params[0], result.params[1])
+
+
+
 direction = defaultdict(lambda: 0)
-def pair_trade(df, t1, t2, beta, threshold=0, rolling_beta = False):
+def pair_trade(df, t1, t2, beta, threshold=0, period=200, rolling_beta = False):
     global currentPos
-    if len(df[t1]) < 200:
+    if len(df[t1]) < period:
         return
     
-    spread = np.log(df.iloc[-200:])[[t1, t2]] @ beta
+    # Try rolling beta
+    if rolling_beta:
+        # Using the cointegration coeff - Dip around 300 for (28, 49) and not too stable
+        jres = get_johansen(np.log(df[[t1, t2]][-period*2:]), 1)
+        beta = jres.evecr[:, 0]
+        # print(beta)
+
+        # Using linear regression
+    
+    spread = np.log(df.iloc[-period:])[[t1, t2]] @ beta
     normalized = spread.values[-1] - np.mean(spread)
 
     threshold = test_threshold(spread)
-
-    # beta adjusted amount
-    # Try rolling beta
-    if rolling_beta:
-        jres = get_johansen(df[[t1, t2]], 1)
-        beta = jres.evecr[:, 0]
     
     unit = min(10000 / df[t].values[-1] / abs(b) for t, b in zip([t1, t2], beta))
 
@@ -567,7 +584,7 @@ def getMyPosition(prices):
         # 14-18 works for 500 - 750, but not sure if this continues
         # pair_trade(df, 14, 18, [1.000000, -0.814115], rolling_beta=True)
 
-        pair_trade(df, 22, 49, [0, 0], rolling_beta=True)
+        pair_trade(df, 28, 49, [1.000000, -0.154962], period=200, rolling_beta=True)
 
         # Check rolling LS + johansen group of cointegrated assets
 
