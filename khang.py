@@ -503,7 +503,6 @@ def linearReg(df, t1, t2):
 
 
 direction = defaultdict(lambda: 0)
-closes = []
 def pair_trade(df, t1, t2, beta, threshold=0, period=200, rolling_beta = False):
     global currentPos
     if len(df[t1]) < period:
@@ -542,14 +541,12 @@ def pair_trade(df, t1, t2, beta, threshold=0, period=200, rolling_beta = False):
         currentPos[t1] = -int(beta[0] * unit)
         currentPos[t2] = -int(beta[1] * unit)
 
-    elif normalized < threshold / 4 and direction[(t1, t2)] == -1 or normalized > -threshold / 4 and \
+    elif normalized < -threshold / 4 and direction[(t1, t2)] == -1 or normalized > threshold / 4 and \
             direction[(t1, t2)] == 1:
         direction[(t1, t2)] = 0
         currentPos[t1] = currentPos[t2] = 0
-        closes.append(len(df[t1]))
 
     safe_pair_trade(currentPos, t1, t2)
-    print(closes)
 
 
 # Safety: Turn off the pair trade if PnL is below -1k
@@ -595,10 +592,9 @@ def getMyPosition(prices):
         # (28, 49): Failed
         # (36, 42): Failed (Positive PnL, not stable)
         # (43, 46): Failed
-        # 
-        pair_trade(df, 43, 46, [1.000000, -0.209390], period=200, rolling_beta=True)
-
-        # Check rolling LS + johansen group of cointegrated assets: Not much found
+        # (43, 49): Failed
+        # (20, 35): Failed for rolling, no rolling still has initial negative (but positive PnL)
+        pair_trade(df, 14, 36, [1.000000, 0.501417], rolling_beta=True)
 
     if False:
         mean_trade(df, [15, 16, 38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
