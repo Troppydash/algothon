@@ -489,7 +489,7 @@ def get_johansen(y, p):
 
     return jres
 
-# Return (a, b) for y = ax + b
+# Return (a, b) for y(t2) = ax(t1) + b
 def linearReg(df, t1, t2):
     df = np.log(df)
 
@@ -498,7 +498,7 @@ def linearReg(df, t1, t2):
     y = df[t2]
     linearModel = sm.OLS(y, x_const)
     result = linearModel.fit()
-    return (result.params[0], result.params[1])
+    return (result.params.values[0], result.params.values[1])
 
 
 
@@ -511,11 +511,15 @@ def pair_trade(df, t1, t2, beta, threshold=0, period=200, rolling_beta = False):
     # Try rolling beta
     if rolling_beta:
         # Using the cointegration coeff - Dip around 300 for (28, 49) and not too stable
-        jres = get_johansen(np.log(df[[t1, t2]][-period*2:]), 1)
-        beta = jres.evecr[:, 0]
+        # jres = get_johansen(np.log(df[[t1, t2]][-period*2:]), 1)
+        # beta = jres.evecr[:, 0]
         # print(beta)
 
-        # Using linear regression
+        # Using rolling linear regression - Not working as well as the rolling coint coeff
+        # intercept, grad = linearReg(df.iloc[-400:], t1, t2)
+        # beta = [-grad, 1]
+
+        pass
     
     spread = np.log(df.iloc[-period:])[[t1, t2]] @ beta
     normalized = spread.values[-1] - np.mean(spread)
