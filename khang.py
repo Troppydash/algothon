@@ -11,6 +11,7 @@ from pykalman import KalmanFilter
 from scipy.optimize import minimize
 from statsmodels.tsa.vector_ar.vecm import VECM
 
+import matplotlib.pyplot as plt
 # UTIL
 # CONSTANTS
 LIMIT = 10000
@@ -520,6 +521,8 @@ def KalmanFilterRegression(df, t1, t2):
     return state_means
 
 direction = defaultdict(lambda: 0)
+spreads = []
+thresholds = []
 def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta = False):
     global currentPos
     if len(df[t1]) < period:
@@ -546,19 +549,19 @@ def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta
 
         # Using kalman filter for the slope - Failed
         # t2 = slope * t1 + intercept
-        # result = KalmanFilterRegression(np.log(df[[t1, t2]][-period:]), t1, t2)
-        # slope, intercept = result[-1, :]
-        # beta = np.array([-slope, 1])
-        # beta = beta/ np.sum(abs(beta))
-        # print(beta)
+        result = KalmanFilterRegression(np.log(df[[t1, t2]][-period:]), t1, t2)
+        slope, intercept = result[-1, :]
+        beta = np.array([-slope, 1])
+        beta = beta/ np.sum(abs(beta))
+        print(beta)
 
         
     
     spread = np.log(df.iloc[-period:])[[t1, t2]] @ beta
-    if intercept is None:
-        normalized = spread - np.mean(spread)
-    else:
-        normalized = spread - intercept
+    normalized = spread - intercept
+    normalized -= np.mean(normalized)
+    
+    spreads.append(normalized.values[-1])
 
     # NORMALISATION WITH KALMAN FILTER - Failed
     # # Use kalman filter to find the normalized spread
@@ -589,6 +592,7 @@ def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta
     
 
     threshold = test_threshold(normalized)
+    thresholds.append(threshold)
     
     unit = min(10000 / df[t].values[-1] / abs(b) for t, b in zip([t1, t2], beta))
 
@@ -609,6 +613,15 @@ def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta
             direction[(t1, t2)] == 1:
         direction[(t1, t2)] = 0
         currentPos[t1] = currentPos[t2] = 0
+
+    if len(spreads) == 250:
+        print(spreads)
+        print(thresholds)
+        plt.figure()
+        plt.plot(spreads)
+        plt.plot(thresholds)
+        plt.plot(-1 * np.array(thresholds))
+        plt.show()
 
     safe_pair_trade(currentPos, t1, t2)
 
