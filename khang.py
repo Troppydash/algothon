@@ -7,6 +7,9 @@ import statsmodels.tsa.ardl as ardl
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
 import statsmodels.api as sm
 
+from pykalman import KalmanFilter
+from scipy.optimize import minimize
+from statsmodels.tsa.vector_ar.vecm import VECM
 
 # UTIL
 # CONSTANTS
@@ -383,9 +386,8 @@ def predict(currentPos, df, ticker, indices, lags, deg, shift=0):
 ### TO RUN, RUN 'eval.py' ##########################
 
 def test_threshold(spread):
-    # copy and pasted
     # https://www.quantconnect.com/docs/v2/research-environment/applying-research/kalman-filters-and-stat-arb
-    spread = spread - np.mean(spread)
+    # Basically find the "expected value "
     s0 = np.linspace(0, spread.max(), 50)
     f_bar = np.array([None] * 50)
     for i in range(50):
@@ -400,7 +402,7 @@ def test_threshold(spread):
     f_star = np.linalg.inv(np.eye(50) + l * D.T @ D) @ f_bar.reshape(-1, 1)
     s_star = [f_star[i] * s0[i] for i in range(50)]
     threshold = s0[s_star.index(max(s_star))]
-
+    print(threshold)
     return threshold
 
 
@@ -500,48 +502,110 @@ def linearReg(df, t1, t2):
     result = linearModel.fit()
     return (result.params.values[0], result.params.values[1])
 
+# Use kalman filter for regression
+def KalmanFilterRegression(df, t1, t2):
+    obs_mat = sm.add_constant(df[t1].values, prepend=False)[:, np.newaxis]
 
+    kf = KalmanFilter(
+        n_dim_obs=1, n_dim_state=2,
+        initial_state_mean=np.ones(2),
+        initial_state_covariance=np.ones((2, 2)),
+        transition_matrices=np.eye(2),
+        observation_matrices=obs_mat,
+        observation_covariance=0.2,
+        transition_covariance=1e-5 / (1 - 1e-5) * np.eye(2)
+        # em_vars=['observation_covariance', 'transition_covariance']
+    )
+    state_means, state_covs = kf.filter(df[t2].values)
+    return state_means
 
 direction = defaultdict(lambda: 0)
-def pair_trade(df, t1, t2, beta, threshold=0, period=200, rolling_beta = False):
+def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta = False):
     global currentPos
     if len(df[t1]) < period:
         return
     
     # Try rolling beta
+    intercept = None
     if rolling_beta:
+        # Use vecm model - Doesn't work at all
+        # vecm_result = VECM(np.log(df[[t1, t2]][-period:]), k_ar_diff=0, coint_rank=1, deterministic='c').fit()
+        # beta = vecm_result.beta
+        # beta = [beta[0][0], beta[1][0]]
+
         # Using the cointegration coeff - Dip around 300 for (28, 49) and not too stable
-        jres = get_johansen(np.log(df[[t1, t2]][-period*2:]), 1)
+        # Decent for 14-18 though
+        jres = get_johansen(np.log(df[[t1, t2]][-period:]), 1)
         beta = jres.evecr[:, 0]
-        # print(beta)
+        beta = beta/ np.sum(abs(beta))
+        print(beta)
 
         # Using rolling linear regression - Not working as well as the rolling coint coeff
         # intercept, grad = linearReg(df.iloc[-400:], t1, t2)
         # beta = [-grad, 1]
 
-        pass
+        # Using kalman filter for the slope - Failed
+        # t2 = slope * t1 + intercept
+        # result = KalmanFilterRegression(np.log(df[[t1, t2]][-period:]), t1, t2)
+        # slope, intercept = result[-1, :]
+        # beta = np.array([-slope, 1])
+        # beta = beta/ np.sum(abs(beta))
+        # print(beta)
+
+        
     
     spread = np.log(df.iloc[-period:])[[t1, t2]] @ beta
-    normalized = spread.values[-1] - np.mean(spread)
+    if intercept is None:
+        normalized = spread - np.mean(spread)
+    else:
+        normalized = spread - intercept
 
-    threshold = test_threshold(spread)
+    # NORMALISATION WITH KALMAN FILTER - Failed
+    # # Use kalman filter to find the normalized spread
+    # kalman_filter = KalmanFilter(transition_matrices = [1],
+    #                     observation_matrices = [1],
+    #                     initial_state_mean = spread.iloc[:start].mean(),
+    #                     observation_covariance = spread.iloc[:start].var(),
+    #                     em_vars=['transition_covariance', 'initial_state_covariance'])
+    # kalman_filter = kalman_filter.em(spread.iloc[:start], n_iter=5)
+    # (filtered_state_means, filtered_state_covariances) = kalman_filter.filter(spread.iloc[:start])
+    
+    # # Obtain the current Mean and Covariance Matrix expectations.
+    # current_mean = filtered_state_means[-1, :]
+    # current_cov = filtered_state_covariances[-1, :]
+    
+    # # Initialize a mean series for spread normalization using the Kalman Filter's results.
+    # mean_series = np.array([None]*(spread.shape[0]-start))
+    
+    # # Roll over the Kalman Filter to obtain the mean series.
+    # for i in range(start, spread.shape[0]):
+    #     (current_mean, current_cov) = kalman_filter.filter_update(filtered_state_mean = current_mean,
+    #                                                             filtered_state_covariance = current_cov,
+    #                                                             observation = spread.iloc[i])
+    #     mean_series[i-start] = float(current_mean)
+
+    # # Obtain the normalized spread series.
+    # normalized = (spread.iloc[start:] - mean_series)
+    
+
+    threshold = test_threshold(normalized)
     
     unit = min(10000 / df[t].values[-1] / abs(b) for t, b in zip([t1, t2], beta))
 
-    if normalized < -threshold:
+    if normalized.values[-1] < -threshold:
         direction[(t1, t2)] = 1
         # buy
         currentPos[t1] = int(beta[0] * unit)
         currentPos[t2] = int(beta[1] * unit)
 
-    elif normalized > threshold:
+    elif normalized.values[-1] > threshold:
         direction[(t1, t2)] = -1
 
         # sell
         currentPos[t1] = -int(beta[0] * unit)
         currentPos[t2] = -int(beta[1] * unit)
 
-    elif normalized < -threshold / 4 and direction[(t1, t2)] == -1 or normalized > threshold / 4 and \
+    elif normalized.values[-1] < -threshold / 4 and direction[(t1, t2)] == -1 or normalized.values[-1] > threshold / 4 and \
             direction[(t1, t2)] == 1:
         direction[(t1, t2)] = 0
         currentPos[t1] = currentPos[t2] = 0
@@ -594,7 +658,8 @@ def getMyPosition(prices):
         # (43, 46): Failed
         # (43, 49): Failed
         # (20, 35): Failed for rolling, no rolling still has initial negative (but positive PnL)
-        pair_trade(df, 14, 36, [1.000000, 0.501417], rolling_beta=True)
+        # (14, 36): Pretty decent, but 14 is already paired with 18
+        pair_trade(df, 14, 36, [0, 0], start=40, period=400, rolling_beta=True)
 
     if False:
         mean_trade(df, [15, 16, 38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
