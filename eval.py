@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from finalSubmit import getMyPosition as getPosition
+from main import getMyPosition as getPosition
 
 nInst = 0
 nt = 0
@@ -33,7 +33,7 @@ def calcPL(prcHist):
     todayPLL = []
     values = []
     (_, nt) = prcHist.shape
-    start = 300
+    start = 500
 
     for t in range(start, start + 251):
         prcHistSoFar = prcHist[:, :t]

@@ -839,7 +839,7 @@ if __name__ == "__main__":
     from custom_eval.alleval import all_eval, prcAll
 
     pairs = []
-    for i in range(50):
+    for i in range(14, 50):
         for j in range(i+1, 50):
             currentPair = (i, j)
             print(i, j)
