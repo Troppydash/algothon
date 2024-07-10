@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from khang import getMyPosition as getPosition
+from finalSubmit import getMyPosition as getPosition
 
 nInst = 0
 nt = 0
@@ -33,7 +33,9 @@ def calcPL(prcHist):
     todayPLL = []
     values = []
     (_, nt) = prcHist.shape
-    for t in range(500, 751):
+    start = 300
+
+    for t in range(start, start + 251):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]

@@ -59,16 +59,19 @@ def calcPL(getPosition, start, prcHist):
         annSharpe = np.sqrt(250) * plmu / plstd
     return (plmu, ret, plstd, annSharpe, totDVolume)
 
-def all_eval(currentPos, getPosition, limit = 250):
+prcAll = None
+def all_eval(currentPos, getPosition, limit = 250, talkative=True):
+    global prcAll
     pricesFile = "./prices.txt"
-    prcAll = loadPrices(pricesFile)
+    if prcAll is None:
+        prcAll = loadPrices(pricesFile)
     print("Loaded %d instruments for %d days" % (nInst, nt))
 
     meanpls = []
     plstds = []
     scores = []
 
-    start = [224, 500, 480, 215, 203, 236, 233, 226, 230, 237, 246, 220, 225, 229, 213, 209, 210, 214, 234, 206, 242, 249, 204, 207, 227, 208, 244, 221, 248, 219, 222, 250, 223, 232, 238, 235, 200, 202, 241, 247, 211, 243, 218, 216, 228, 245, 217, 231, 239, 212, 201, 240, 205]
+    start = [500, 224, 480, 215, 203, 236, 233, 226, 230, 237, 246, 220, 225, 229, 213, 209, 210, 214, 234, 206, 242, 249, 204, 207, 227, 208, 244, 221, 248, 219, 222, 250, 223, 232, 238, 235, 200, 202, 241, 247, 211, 243, 218, 216, 228, 245, 217, 231, 239, 212, 201, 240, 205]
     for i in range(0, min(limit, len(start))):
         # Reset the current position
         for j in range(50):
@@ -93,14 +96,17 @@ def all_eval(currentPos, getPosition, limit = 250):
         # print("totDvolume: %.0lf " % dvol)
         # print("Score: %.2lf" % score)
     
-    print("Summary: ")
-    print("Mean: ")
-    print(pd.Series(meanpls).describe())
-    plt.figure()
-    plt.plot(meanpls)
-    plt.show()
+    if talkative:
+        print("Summary: ")
+        print("Mean: ")
+        print(pd.Series(meanpls).describe())
+        plt.figure()
+        plt.plot(meanpls)
+        plt.show()
 
-    print("Std: ")
-    print(pd.Series(plstds).describe())
-    print("Score")
-    print(pd.Series(scores).describe())
+        print("Std: ")
+        print(pd.Series(plstds).describe())
+        print("Score")
+        print(pd.Series(scores).describe())
+    
+    return (pd.Series(meanpls).min(), pd.Series(scores).min()) 

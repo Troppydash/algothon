@@ -6,6 +6,7 @@ import pandas as pd
 import statsmodels.tsa.ardl as ardl
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
 import statsmodels.api as sm
+import statsmodels.tsa.stattools as stattools
 
 from pykalman import KalmanFilter
 from scipy.optimize import minimize
@@ -403,7 +404,7 @@ def test_threshold(spread):
     f_star = np.linalg.inv(np.eye(50) + l * D.T @ D) @ f_bar.reshape(-1, 1)
     s_star = [f_star[i] * s0[i] for i in range(50)]
     threshold = s0[s_star.index(max(s_star))]
-    print(threshold)
+    # print(threshold)
     return threshold
 
 
@@ -456,8 +457,8 @@ def safe_mean_trade(currentPos, tickers):
             currentPos[ticker] = 0
         return
 
-    # Check if got below -1.5k
-    SAFETY_THRESHOLD = -1500
+    # Check if got below -500
+    SAFETY_THRESHOLD = -500
     totalPL = 0
     for ticker in tickers:
         totalPL += tickers__cash[ticker] + tickers__posVal[ticker]
@@ -514,7 +515,7 @@ def KalmanFilterRegression(df, t1, t2):
         transition_matrices=np.eye(2),
         observation_matrices=obs_mat,
         observation_covariance=0.2,
-        transition_covariance=1e-5 / (1 - 1e-5) * np.eye(2)
+        transition_covariance=0.01 * np.eye(2)
         # em_vars=['observation_covariance', 'transition_covariance']
     )
     state_means, state_covs = kf.filter(df[t2].values)
@@ -523,13 +524,16 @@ def KalmanFilterRegression(df, t1, t2):
 direction = defaultdict(lambda: 0)
 spreads = []
 thresholds = []
+closes = []
 def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta = False):
     global currentPos
     if len(df[t1]) < period:
+        spreads.append(0)
+        thresholds.append(0)
         return
     
     # Try rolling beta
-    intercept = None
+    intercept = 0
     if rolling_beta:
         # Use vecm model - Doesn't work at all
         # vecm_result = VECM(np.log(df[[t1, t2]][-period:]), k_ar_diff=0, coint_rank=1, deterministic='c').fit()
@@ -538,10 +542,10 @@ def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta
 
         # Using the cointegration coeff - Dip around 300 for (28, 49) and not too stable
         # Decent for 14-18 though
-        jres = get_johansen(np.log(df[[t1, t2]][-period:]), 1)
+        jres = get_johansen(np.log(df[[t1, t2]][-period*2:]), 1)
         beta = jres.evecr[:, 0]
         beta = beta/ np.sum(abs(beta))
-        print(beta)
+        # print(beta)
 
         # Using rolling linear regression - Not working as well as the rolling coint coeff
         # intercept, grad = linearReg(df.iloc[-400:], t1, t2)
@@ -549,18 +553,17 @@ def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta
 
         # Using kalman filter for the slope - Failed
         # t2 = slope * t1 + intercept
-        result = KalmanFilterRegression(np.log(df[[t1, t2]][-period:]), t1, t2)
-        slope, intercept = result[-1, :]
-        beta = np.array([-slope, 1])
-        beta = beta/ np.sum(abs(beta))
-        print(beta)
+        # result = KalmanFilterRegression(np.log(df[[t1, t2]][-period:]), t1, t2)
+        # slope, intercept = result[-1, :]
+        # beta = np.array([-slope, 1])
+        # beta = beta/ np.sum(abs(beta))
+        # print(beta)
 
         
     
     spread = np.log(df.iloc[-period:])[[t1, t2]] @ beta
     normalized = spread - intercept
-    normalized -= np.mean(normalized)
-    
+    normalized = (normalized - np.mean(normalized))/np.std(normalized)
     spreads.append(normalized.values[-1])
 
     # NORMALISATION WITH KALMAN FILTER - Failed
@@ -609,19 +612,22 @@ def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta
         currentPos[t1] = -int(beta[0] * unit)
         currentPos[t2] = -int(beta[1] * unit)
 
-    elif normalized.values[-1] < -threshold / 4 and direction[(t1, t2)] == -1 or normalized.values[-1] > threshold / 4 and \
+    elif normalized.values[-1] < -threshold / 2 and direction[(t1, t2)] == -1 or normalized.values[-1] > threshold / 2 and \
             direction[(t1, t2)] == 1:
+        closes.append(len(df[t1]))
         direction[(t1, t2)] = 0
         currentPos[t1] = currentPos[t2] = 0
 
-    if len(spreads) == 250:
-        print(spreads)
-        print(thresholds)
-        plt.figure()
-        plt.plot(spreads)
-        plt.plot(thresholds)
-        plt.plot(-1 * np.array(thresholds))
-        plt.show()
+    # if len(spreads) == 250:
+    #     print(spreads)
+    #     print(thresholds)
+    #     print(np.mean(np.array(spreads)))
+    #     print("CLOSES", closes)
+    #     plt.figure()
+    #     plt.plot(spreads)
+    #     plt.plot(thresholds)
+    #     plt.plot(-1 * np.array(thresholds))
+    #     plt.show()
 
     safe_pair_trade(currentPos, t1, t2)
 
@@ -672,7 +678,7 @@ def getMyPosition(prices):
         # (43, 49): Failed
         # (20, 35): Failed for rolling, no rolling still has initial negative (but positive PnL)
         # (14, 36): Pretty decent, but 14 is already paired with 18
-        pair_trade(df, 14, 36, [0, 0], start=40, period=400, rolling_beta=True)
+        pair_trade(df, 14, 36, [0, 0], start=40, period=200, rolling_beta=True)
 
     if False:
         mean_trade(df, [15, 16, 38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
@@ -729,8 +735,125 @@ def getMyPosition(prices):
 
     return currentPos
 
+def funcGen(currentPair: tuple):
+    def getMyPosition(prices):
+        global currentPos, oldPos
+
+        nins, nt = prices.shape
+
+        df = pd.DataFrame(prices.T, columns=np.arange(50))
+
+        oldPos = np.copy(currentPos)
+
+        if False:
+            # better_pair(prices, 28, 39, 1.2159226859939878, -8.963364425168958, -8.783364425168958,
+            #             -8.603364425168959, 7.0, 8.0, 0.6)
+            better_pair(prices, 14, 30, 0.7192064351085297, 4.86640231, 5.15640231, 5.44640231, 6, 4)
+            # better_pair(prices, 7, 48, 0.1804261347577773, 38.62736360482299, 39.21736360482299,
+            #             39.807363604822996,
+            #             12.0, 2.0, 0.8)
+            currentPos = better_pair_aggregate(currentPos)
+
+        if True:
+            # Doesn't work since it doesn't mean revert in 500-750
+            # using
+            # https://www.quantconnect.com/docs/v2/research-environment/applying-research/kalman-filters-and-stat-arb
+            # and
+            # https://www.quantconnect.com/docs/v2/research-environment/applying-research/pca-and-pairs-trading
+
+            # pair_trade(df, 11, 42, [0.45263609, -0.54736391], 0.026805109292277557)
+            # pair_trade(df, 1, 10, [0.63057265, -0.36942735], 0.019607962852651883)
+            # pair_trade(df, 4, 32, [0.4989909853629603, -0.5010090146370396], 0.008144572661827587)
+            # pair_trade(df, 24, 49, [0.4927626542556702, -0.5072373457443298])
+            # pair_trade(df, 22, 47, [0.4570128708881386, -0.5429871291118614])
+
+            # 14-18 works for 500 - 750, but not sure if this continues
+            # pair_trade(df, 14, 18, [1.000000, -0.814115], rolling_beta=True)
+
+            # Try other pairs:
+            # (28, 49): Failed
+            # (36, 42): Failed (Positive PnL, not stable)
+            # (43, 46): Failed
+            # (43, 49): Failed
+            # (20, 35): Failed for rolling, no rolling still has initial negative (but positive PnL)
+            # (14, 36): Pretty decent, but 14 is already paired with 18
+            pair_trade(df, currentPair[0], currentPair[1], [0, 0], start=40, period=200, rolling_beta=True)
+
+        if False:
+            mean_trade(df, [15, 16, 38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
+            mean_trade(df, [9, 21, 35], [0.32971776797284735, -0.5696967968104495, -0.10058543521670305])
+            mean_trade(df, [7, 17, 25], [0.38177208101532123, 0.5859183559138036, 0.03230956307087521])
+            mean_trade(df, [27, 40, 44], [0.5904390715664551, -0.30280905334000785, -0.10675187509353694])
+
+        if False:
+            # # LEAD LAG TRADE:
+            predict(currentPos, df, 38, list(range(50)), 1, 1.1)
+            predict(currentPos, df, 27, list(range(50)), 1, 1.1)
+
+            # # SINGLE TRADE:
+            # # SAFE TICKERS: Gain positive PL and score on themselves and overall
+            # # For ticker 8, simple mean reversion (TODO: See if there is a better way)
+            # # Increase performance by .1
+            # meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
+
+            # # Ticker 27: Slow, significant trend. Increase performance by .2
+            # movingAvg(currentPos, prices, 27, 28.912860, 0.495184, 40, 20, threshold=0.05)
+            
+            # # Ticker 3: Moving average
+            # movingAvg(currentPos, prices, 3, 48.004780, 2.051494, 40, 20, threshold=0.2)
+            
+            # All of those hurts performance from 500 - 750
+            # # Ticker 6: Confirmed stationary-ish with AD-fuller at 10% sig level
+            # # Less risky, higher PL, but with higher Std, so lower score.
+            # # Score is still positive, but around 40% of the score is negative
+            # meanRevertStrict(currentPos, prices, 6, 18.177200, 0.299771)
+            
+            # RISKY STICKER: Gain positive PL, but std makes negative score individually.
+            # Group them into groups => Diversification = Overall score improvements
+            
+            # # Ticker 4: Mean reversion (TODO: other strategy needs more careful investigation)
+            # # Mean revert: Makes decent PL, but std varies due to the fluctuation of the price
+            # meanRevertStrict(currentPos, prices, 4, 55.496120, 1.733916, 1.5)
+            
+            # # Ticker 15: Too jaggy trend to fit ARIMA. Try using moving average for trend prediction.
+            # # Can't do fair price with moving average on short window.
+            # # Work for moving average with short window and low threshold due to the short trend cycle.
+            # # Quite high std (due to the price itself is volatile), but high PL => Score improvement
+            # # with diversification
+            # movingAvg(currentPos, prices, 15, 25.024019999999997, 1.1686007423367402, 20, 10, 0)
+
+        # Run safety check on all tickers
+        for i in [8,6]:
+            safetyCheck(currentPos, prices, df, i, priceMeans[i], priceStds[i])
+
+        # Clamp the limit
+        for i in range(50):
+            clampLimit(currentPos, df, i)
+
+        trackTickerProfit(prices)
+
+        return currentPos
+    return getMyPosition
 
 if __name__ == "__main__":
-    from custom_eval.alleval import all_eval
+    from custom_eval.alleval import all_eval, prcAll
 
-    all_eval(currentPos, getMyPosition, 10)
+    pairs = []
+    for i in range(50):
+        for j in range(i+1, 50):
+            currentPair = (i, j)
+            print(i, j)
+
+            if prcAll is not None:
+                testPrices = prcAll[:, 300:501]
+                df = pd.DataFrame(testPrices.T, columns=np.arange(50))
+                testCointPval = stattools.coint(df[i], df[j])[1]
+                if testCointPval > 0.1:
+                    continue
+
+
+            result = (all_eval(currentPos, funcGen(currentPair), 1, talkative=False))
+            if result[0] > 1 and result[1] > 0:
+                pairs.append((currentPair, result))
+                print(pairs)
+    print(pairs)
