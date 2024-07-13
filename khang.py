@@ -457,8 +457,8 @@ def safe_mean_trade(currentPos, tickers):
             currentPos[ticker] = 0
         return
 
-    # Check if got below -500
-    SAFETY_THRESHOLD = -500
+    # Check if got below -1000
+    SAFETY_THRESHOLD = -1000
     totalPL = 0
     for ticker in tickers:
         totalPL += tickers__cash[ticker] + tickers__posVal[ticker]
