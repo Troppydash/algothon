@@ -525,9 +525,14 @@ direction = defaultdict(lambda: 0)
 spreads = []
 thresholds = []
 closes = []
-def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta = False):
+buys = []
+sells = []
+def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, fixed_mean=None, fixed_var=None, 
+               convert_rate=-1/2, rolling_beta = False):
     global currentPos
-    if len(df[t1]) < period:
+
+    # Start after 200 points if not using fixed mean/ variance
+    if fixed_mean is None and len(df[t1]) < period:
         spreads.append(0)
         thresholds.append(0)
         return
@@ -563,7 +568,10 @@ def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta
     
     spread = np.log(df.iloc[-period:])[[t1, t2]] @ beta
     normalized = spread - intercept
-    normalized = (normalized - np.mean(normalized))/np.std(normalized)
+    if fixed_mean is None:
+        normalized = (normalized - np.mean(normalized))/np.std(normalized)
+    else:
+        normalized = (normalized - fixed_mean)/fixed_var
     spreads.append(normalized.values[-1])
 
     # NORMALISATION WITH KALMAN FILTER - Failed
@@ -594,42 +602,39 @@ def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, rolling_beta
     # normalized = (spread.iloc[start:] - mean_series)
     
 
-    threshold = test_threshold(normalized)
+    if fixed_var is not None:
+        threshold = 1.5
+    else:
+        threshold = test_threshold(normalized)
     thresholds.append(threshold)
     
     unit = min(10000 / df[t].values[-1] / abs(b) for t, b in zip([t1, t2], beta))
 
-    if normalized.values[-1] < -threshold:
+    if normalized.values[-1] < -threshold and direction[(t1, t2)] != 1:
         direction[(t1, t2)] = 1
         # buy
         currentPos[t1] = int(beta[0] * unit)
         currentPos[t2] = int(beta[1] * unit)
+        buys.append(len(df[t1]))
 
-    elif normalized.values[-1] > threshold:
+    elif normalized.values[-1] > threshold and direction[(t1, t2)] != -1:
         direction[(t1, t2)] = -1
 
         # sell
         currentPos[t1] = -int(beta[0] * unit)
         currentPos[t2] = -int(beta[1] * unit)
+        sells.append(len(df[t1]))
 
-    elif normalized.values[-1] < -threshold / 2 and direction[(t1, t2)] == -1 or normalized.values[-1] > threshold / 2 and \
-            direction[(t1, t2)] == 1:
+    elif normalized.values[-1] < threshold * convert_rate and direction[(t1, t2)] == -1 or \
+            normalized.values[-1] > -threshold * convert_rate and direction[(t1, t2)] == 1:
         closes.append(len(df[t1]))
         direction[(t1, t2)] = 0
         currentPos[t1] = currentPos[t2] = 0
 
-    # if len(spreads) == 250:
-    #     print(spreads)
-    #     print(thresholds)
-    #     print(np.mean(np.array(spreads)))
-    #     print("CLOSES", closes)
-    #     plt.figure()
-    #     plt.plot(spreads)
-    #     plt.plot(thresholds)
-    #     plt.plot(-1 * np.array(thresholds))
-    #     plt.show()
-
     safe_pair_trade(currentPos, t1, t2)
+    print(closes)
+    print(buys)
+    print(sells)
 
 
 # Safety: Turn off the pair trade if PnL is below -1k
@@ -678,7 +683,21 @@ def getMyPosition(prices):
         # (43, 49): Failed
         # (20, 35): Failed for rolling, no rolling still has initial negative (but positive PnL)
         # (14, 36): Pretty decent, but 14 is already paired with 18
-        pair_trade(df, 14, 36, [0, 0], start=40, period=200, rolling_beta=True)
+
+        # pair_trade(df, 24, 49, [1, -1.69],  
+        #            fixed_mean=-2.6625889601409862, fixed_var=0.024152918754158037,
+        #            convert_rate=-1/2, 
+        #            start=40, period=200, rolling_beta=False)
+        # pair_trade(df, 3, 34, [1, -0.53],  
+        #            fixed_mean=2.170022142435276, fixed_var=0.01215140613320954,
+        #            convert_rate=-1/3, 
+        #            start=40, period=200, rolling_beta=False)
+
+        pair_trade(df, 14, 16, [1, -2.86],  
+                   fixed_mean=-7.495104103312678, fixed_var=0.0326339045176631,
+                   convert_rate=-1/3, 
+                   start=40, period=200, rolling_beta=False)
+        pass
 
     if False:
         mean_trade(df, [15, 16, 38], [0.1322021733431518, 0.5850307797427331, -0.2827670469141151])
@@ -689,7 +708,7 @@ def getMyPosition(prices):
     if False:
         # # LEAD LAG TRADE:
         predict(currentPos, df, 38, list(range(50)), 1, 1.1)
-        predict(currentPos, df, 27, list(range(50)), 1, 1.1)
+        # predict(currentPos, df, 27, list(range(50)), 1, 1.1)
 
         # # SINGLE TRADE:
         # # SAFE TICKERS: Gain positive PL and score on themselves and overall
