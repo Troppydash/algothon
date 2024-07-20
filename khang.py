@@ -566,7 +566,9 @@ def pair_trade(df, t1, t2, beta, start=20, fixed_threshold=1.5, period=200, fixe
 
         
     
-    spread = np.log(df.iloc[-period:])[[t1, t2]] @ beta
+    # spread = np.log(df.iloc[-period:])[[t1, t2]] @ beta
+    # Remove the log
+    spread = df.iloc[-period:][[t1, t2]] @ beta
     normalized = spread - intercept
     if fixed_mean is None:
         normalized = (normalized - np.mean(normalized))/np.std(normalized)
@@ -684,20 +686,15 @@ def getMyPosition(prices):
         # (20, 35): Failed for rolling, no rolling still has initial negative (but positive PnL)
         # (14, 36): Pretty decent, but 14 is already paired with 18
 
-        # pair_trade(df, 24, 49, [1, -1.69],  
-        #            fixed_mean=-2.6625889601409862, fixed_var=0.024152918754158037,
-        #            convert_rate=-1/2, 
-        #            start=40, period=200, rolling_beta=False)
+        pair_trade(df, 24, 49, [1, -1.76],  
+                   fixed_mean=-35.8631276, fixed_var=1.4104603201076735,
+                   convert_rate=1/4, 
+                   start=40, period=200, rolling_beta=False)
+        
         # pair_trade(df, 3, 34, [1, -0.53],  
         #            fixed_mean=2.170022142435276, fixed_var=0.01215140613320954,
         #            convert_rate=-1/3, 
         #            start=40, period=200, rolling_beta=False)
-
-        pair_trade(df, 14, 16, [1, -2.86],
-                   fixed_threshold=2,  
-                   fixed_mean=-7.495104103312678, fixed_var=0.0326339045176631,
-                   convert_rate=-1/3, 
-                   start=40, period=200, rolling_beta=False)
         pass
 
     if False:
