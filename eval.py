@@ -8,6 +8,7 @@ from khang import getMyPosition as getPosition
 nInst = 0
 nt = 0
 commRate = 0.0010
+# commRate = 0
 dlrPosLimit = 10000
 
 
@@ -35,7 +36,7 @@ def calcPL(prcHist):
     (_, nt) = prcHist.shape
     start = 750
 
-    for t in range(start, start + 241):
+    for t in range(start, start + 251):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]

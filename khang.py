@@ -527,7 +527,7 @@ thresholds = []
 closes = []
 buys = []
 sells = []
-def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, fixed_mean=None, fixed_var=None, 
+def pair_trade(df, t1, t2, beta, start=20, fixed_threshold=1.5, period=200, fixed_mean=None, fixed_var=None, 
                convert_rate=-1/2, rolling_beta = False):
     global currentPos
 
@@ -603,7 +603,7 @@ def pair_trade(df, t1, t2, beta, start=20, threshold=0, period=200, fixed_mean=N
     
 
     if fixed_var is not None:
-        threshold = 1.5
+        threshold = fixed_threshold
     else:
         threshold = test_threshold(normalized)
     thresholds.append(threshold)
@@ -693,7 +693,8 @@ def getMyPosition(prices):
         #            convert_rate=-1/3, 
         #            start=40, period=200, rolling_beta=False)
 
-        pair_trade(df, 14, 16, [1, -2.86],  
+        pair_trade(df, 14, 16, [1, -2.86],
+                   fixed_threshold=2,  
                    fixed_mean=-7.495104103312678, fixed_var=0.0326339045176631,
                    convert_rate=-1/3, 
                    start=40, period=200, rolling_beta=False)
