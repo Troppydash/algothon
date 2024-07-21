@@ -652,6 +652,10 @@ def trade27(df):
     if FAILED_27:
         return
     
+    # Should not need this anymore, but add in just in case
+    if len(df[27]) < 100:
+        return
+    
     # Sell all of it right away
     if (currentPos[27] == 0):
         currentPos[27] = -LIMIT/df[27].values[-1]
