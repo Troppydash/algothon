@@ -34,7 +34,7 @@ def calcPL(prcHist):
     todayPLL = []
     values = []
     (_, nt) = prcHist.shape
-    start = 500
+    start = 750
 
     for t in range(start, start + 251):
         prcHistSoFar = prcHist[:, :t]

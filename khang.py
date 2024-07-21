@@ -527,7 +527,7 @@ thresholds = []
 closes = []
 buys = []
 sells = []
-def pair_trade(df, t1, t2, beta, start=20, fixed_threshold=1.5, period=200, fixed_mean=None, fixed_var=None, 
+def pair_trade(df, t1, t2, beta, start=20, fixed_threshold=1.7, period=200, fixed_mean=None, fixed_var=None, 
                convert_rate=-1/2, rolling_beta = False):
     global currentPos
 
@@ -644,6 +644,30 @@ def safe_pair_trade(currentPos, t1, t2):
     safe_mean_trade(currentPos, [t1, t2])
 
 
+# SPECIAL TICKER: For ticker that shows a single trend from 0 - 1000
+# Trade against that trend, but guard if the trend changes, then reset the position
+FAILED_27 = False
+def trade27(df):
+    global FAILED_27
+    if FAILED_27:
+        return
+    
+    # Sell all of it right away
+    if (currentPos[27] == 0):
+        currentPos[27] = -LIMIT/df[27].values[-1]
+    
+    # Check if the trend switches to increasing (gradient > 0.005)
+    x = np.array(range(100))
+    y = np.array(df[27].values[-100:])
+    m, b = np.polyfit(x, y, 1)
+
+    if m > 0.005:
+        FAILED_27 = True
+        currentPos[27] = 0
+
+
+
+
 def getMyPosition(prices):
     global currentPos, oldPos
 
@@ -686,15 +710,56 @@ def getMyPosition(prices):
         # (20, 35): Failed for rolling, no rolling still has initial negative (but positive PnL)
         # (14, 36): Pretty decent, but 14 is already paired with 18
 
+        # Simply use 1.7std for mean reversion threshold
+        # Reliable pair 
         pair_trade(df, 24, 49, [1, -1.76],  
-                   fixed_mean=-35.8631276, fixed_var=1.4104603201076735,
+                   fixed_mean=-35.6903584, fixed_var=1.4543490349624149,
                    convert_rate=1/4, 
                    start=40, period=200, rolling_beta=False)
         
-        # pair_trade(df, 3, 34, [1, -0.53],  
-        #            fixed_mean=2.170022142435276, fixed_var=0.01215140613320954,
-        #            convert_rate=-1/3, 
+        # Trade quite infrequent. Almost guaranteed profit when traded, 
+        # but exposed to volatility between trade + large swings => high std.
+        # Positive PnL, negative score. Need to use with multiple pairs.
+        pair_trade(df, 3, 34, [1, -1.07],  
+                   fixed_mean=21.486392799999997, fixed_var=0.6272599034968096,
+                   convert_rate=-1/10, 
+                   start=40, period=200, rolling_beta=False)
+        
+        # Not bad pair, but jerky mean reversion => High std.
+        # Need to use with multiple pairs
+        pair_trade(df, 14, 16, [1, -1.21],  
+                   fixed_mean=-27.836499466666666, fixed_var=0.48925669423427287,
+                   convert_rate=-1/5, 
+                   start=40, period=200, rolling_beta=False)
+        
+        # Decent pair. Relatively centered, good stationary stats 
+        # but not reverting as much as above.
+        pair_trade(df, 11, 42, [1, -2.21],  
+                   fixed_mean=-0.9280975999999994, fixed_var=1.2119712290620765,
+                   convert_rate=-1/5, 
+                   start=40, period=200, rolling_beta=False)
+
+        # Not too bad pair. Strong stationary stats, although doesn't revert completely too frequent
+        pair_trade(df, 20, 25, [1, -0.467178],  
+                   fixed_mean=38.78866432250666, fixed_var=2.5068693724543896,
+                   convert_rate=1/5, 
+                   start=40, period=200, rolling_beta=False)
+
+        # RISKY PAIR:
+        # # The mean reversion is not quite centered, but the stats about stationary
+        # # is quite fine. Use with caution.
+        # pair_trade(df, 36, 41, [1, -0.36],  
+        #            fixed_mean=13.594984, fixed_var=1.38186841529286,
+        #            convert_rate=1/4, 
         #            start=40, period=200, rolling_beta=False)
+
+        # The mean reversion is fine. The stationary stats is not too strong, and the 
+        # mean reversion is not too frequent toward the end
+        # pair_trade(df, 5, 38, [1, -1.89],  
+        #            fixed_mean=-29.117189733333333, fixed_var=0.365790764474167,
+        #            convert_rate=1/5, 
+        #            start=40, period=200, rolling_beta=False)
+        
         pass
 
     if False:
@@ -703,19 +768,20 @@ def getMyPosition(prices):
         mean_trade(df, [7, 17, 25], [0.38177208101532123, 0.5859183559138036, 0.03230956307087521])
         mean_trade(df, [27, 40, 44], [0.5904390715664551, -0.30280905334000785, -0.10675187509353694])
 
-    if False:
+    if True:
         # # LEAD LAG TRADE:
         predict(currentPos, df, 38, list(range(50)), 1, 1.1)
         # predict(currentPos, df, 27, list(range(50)), 1, 1.1)
 
         # # SINGLE TRADE:
         # # SAFE TICKERS: Gain positive PL and score on themselves and overall
+
+        # Ticker 27: Slow, significant trend. Increase performance by .2
+        trade27(df)
+
         # # For ticker 8, simple mean reversion (TODO: See if there is a better way)
         # # Increase performance by .1
         # meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
-
-        # # Ticker 27: Slow, significant trend. Increase performance by .2
-        # movingAvg(currentPos, prices, 27, 28.912860, 0.495184, 40, 20, threshold=0.05)
         
         # # Ticker 3: Moving average
         # movingAvg(currentPos, prices, 3, 48.004780, 2.051494, 40, 20, threshold=0.2)
