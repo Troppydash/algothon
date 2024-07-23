@@ -714,6 +714,7 @@ def getMyPosition(prices):
         # (20, 35): Failed for rolling, no rolling still has initial negative (but positive PnL)
         # (14, 36): Pretty decent, but 14 is already paired with 18
 
+        # HOPEFULLY DECENT PAIRS
         # Simply use 1.7std for mean reversion threshold
         # Reliable pair 
         pair_trade(df, 24, 49, [1, -1.76],  
@@ -757,10 +758,20 @@ def getMyPosition(prices):
         #            convert_rate=1/4, 
         #            start=40, period=200, rolling_beta=False)
 
-        # The mean reversion is fine. The stationary stats is not too strong, and the 
-        # mean reversion is not too frequent toward the end
+        # # The mean reversion is fine. The stationary stats is not too strong, and the 
+        # # mean reversion is not too frequent toward the end
         # pair_trade(df, 5, 38, [1, -1.89],  
         #            fixed_mean=-29.117189733333333, fixed_var=0.365790764474167,
+        #            convert_rate=1/5, 
+        #            start=40, period=200, rolling_beta=False)
+
+        # # The mean reversion is not too bad. Not too strong stationary stats.
+        # # There is a suspicous drop near 800, although recover.
+        # # Probably only uses this for gambling top 3. Since it's a bit suspicious, threshold
+        # # is set higher at 2 to stop stupid trade, if any.
+        # pair_trade(df, 9, 46, [1, -0.42],  
+        #            fixed_mean=25.969507466666663, fixed_var=2.4729721181817332,
+        #            fixed_threshold=2,
         #            convert_rate=1/5, 
         #            start=40, period=200, rolling_beta=False)
         
@@ -772,7 +783,7 @@ def getMyPosition(prices):
         mean_trade(df, [7, 17, 25], [0.38177208101532123, 0.5859183559138036, 0.03230956307087521])
         mean_trade(df, [27, 40, 44], [0.5904390715664551, -0.30280905334000785, -0.10675187509353694])
 
-    if True:
+    if False:
         # # LEAD LAG TRADE:
         predict(currentPos, df, 38, list(range(50)), 1, 1.1)
         # predict(currentPos, df, 27, list(range(50)), 1, 1.1)
