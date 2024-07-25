@@ -37,7 +37,7 @@ def calcPL(prcHist):
     (_, nt) = prcHist.shape
     start = 300
 
-    for t in range(600, 781):
+    for t in range(750, 1001):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]

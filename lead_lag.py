@@ -12,7 +12,7 @@ COMM_RATE = 0.0010
 currentPos = np.zeros(50)
 
 # LEAD-LAG STRATEGY
-def predict(currentPos, df, ticker, indices, lags, deg, shift=0):
+def predict(currentPos, df, ticker, indices, lags, deg=1):
 
     result = ardl.ARDL(
         df[ticker].pct_change().dropna().values[-600:],
@@ -41,8 +41,18 @@ def getMyPosition(prices):
 
     df = pd.DataFrame(prices.T, columns=np.arange(50))
 
-    for i in range(42):
-        predict(currentPos, df, i, [i+8], np.arange(572,575), 0.9)
+    # for i in range(42):
+    #     if i in [19,27,38]:
+    #         continue
+
+    #     predict(currentPos, df, i, [i+8], np.arange(572,575), 1)
+
+    # for i in range(42,50):
+    #     predict(currentPos, df, i, [i-42], np.arange(571,574), 1)
+
+    # predict(currentPos, df, 19, [48], np.arange(286, 289), 1)
+
+    predict(currentPos, df, 7, [36], [287])
  
 
     return currentPos
