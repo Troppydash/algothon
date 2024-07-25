@@ -129,3 +129,56 @@ Trimmed the above to ignore not pair trade (both beta is > 0) and non-stationary
  ((13, 19), (1, -0.9), 63): Not quite stationary and slightly shifted upward (need checking),
  ((4, 5), (1, -1.55), 62): Not stationary
  ]
+
+
+ Individual ticker:
+ 0: Downward, unclear
+ 1: unclear
+ 2: Downward (Strong)
+ 3: Downward (Strong)
+ 4: unclear
+ 5: Downward (Mid)
+ 6: unclear
+ 7: unclear
+ 8: unclear
+ 9: unclear
+ 10: unclear
+ 11: unclear
+ 12: unclear
+ 13: unclear
+ 14: Downward (Low)
+ 15: unclear
+ 16: Downward (Mid)
+ 17: unclear
+ 18: Downward (Mid)
+ 19: unclear
+ 20: unclear
+ 21: unclear
+ 22: unclear
+ 23: unclear
+ 24: unclear
+ 25: unclear
+ 26: unclear
+ 27: Downward (Strong)
+ 28: unclear
+ 29: Downward (Low)
+ 30: unclear
+ 31: unclear
+ 32: unclear
+ 33: unclear
+ 34: Downward (Mid)
+ 35: unclear
+ 36: unclear
+ 37: unclear
+ 38: Downward (Mid)
+ 39: unclear
+ 40: unclear
+ 41: unclear, upward (low)
+ 42: unclear
+ 43: unclear 
+ 44: unclear
+ 45: unclear
+ 46: upward (low)
+ 47: unclear
+ 48: unclear
+ 49: unclear

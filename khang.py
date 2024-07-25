@@ -448,7 +448,7 @@ def mean_trade(df, tickers, beta):
 safe_mean_trade__fail = defaultdict(lambda: False)
 
 
-def safe_mean_trade(currentPos, tickers):
+def safe_mean_trade(currentPos, tickers, SAFETY_THRESHOLD = -1000):
     global tickers__cash, tickers__posVal
     tickers = tuple(tickers)
     # If got below 1.5k, something is wrong with the strategy. Turns it off.
@@ -458,7 +458,6 @@ def safe_mean_trade(currentPos, tickers):
         return
 
     # Check if got below -1000
-    SAFETY_THRESHOLD = -1000
     totalPL = 0
     for ticker in tickers:
         totalPL += tickers__cash[ticker] + tickers__posVal[ticker]
@@ -646,28 +645,31 @@ def safe_pair_trade(currentPos, t1, t2):
 
 # SPECIAL TICKER: For ticker that shows a single trend from 0 - 1000
 # Trade against that trend, but guard if the trend changes, then reset the position
-FAILED_27 = False
-def trade27(df):
-    global FAILED_27
-    if FAILED_27:
+FAILED_TREND = defaultdict(lambda: False)
+def tradeTrend(df, ticker, toSell, failed_threshold):
+    global FAILED_TREND
+    if FAILED_TREND[ticker]:
         return
     
     # Should not need this anymore, but add in just in case
-    if len(df[27]) < 100:
+    if len(df[ticker]) < 100:
         return
     
     # Sell all of it right away
-    if (currentPos[27] == 0):
-        currentPos[27] = -LIMIT/df[27].values[-1]
+    if (currentPos[ticker] == 0):
+        currentPos[ticker] = -LIMIT/df[ticker].values[-1]
     
     # Check if the trend switches to increasing (gradient > 0.005)
     x = np.array(range(100))
-    y = np.array(df[27].values[-100:])
+    y = np.array(df[ticker].values[-100:])
     m, b = np.polyfit(x, y, 1)
 
-    if m > 0.005:
-        FAILED_27 = True
-        currentPos[27] = 0
+    if m > failed_threshold:
+        FAILED_TREND[ticker] = True
+        currentPos[ticker] = 0
+
+    # If made a loss more than 500, turn it off
+    safe_mean_trade(currentPos, [ticker], SAFETY_THRESHOLD=-500)
 
 
 
@@ -690,7 +692,7 @@ def getMyPosition(prices):
         #             12.0, 2.0, 0.8)
         currentPos = better_pair_aggregate(currentPos)
 
-    if True:
+    if False:
         # Doesn't work since it doesn't mean revert in 500-750
         # using
         # https://www.quantconnect.com/docs/v2/research-environment/applying-research/kalman-filters-and-stat-arb
@@ -783,16 +785,27 @@ def getMyPosition(prices):
         mean_trade(df, [7, 17, 25], [0.38177208101532123, 0.5859183559138036, 0.03230956307087521])
         mean_trade(df, [27, 40, 44], [0.5904390715664551, -0.30280905334000785, -0.10675187509353694])
 
-    if False:
+    if True:
         # # LEAD LAG TRADE:
-        predict(currentPos, df, 38, list(range(50)), 1, 1.1)
-        # predict(currentPos, df, 27, list(range(50)), 1, 1.1)
+        # predict(currentPos, df, 38, list(range(50)), 1, 1.1)
 
         # # SINGLE TRADE:
         # # SAFE TICKERS: Gain positive PL and score on themselves and overall
 
         # Ticker 27: Slow, significant trend. Increase performance by .2
-        trade27(df)
+        tradeTrend(df, 27, True, 0.004)
+        tradeTrend(df, 2, True, 0.004)
+        tradeTrend(df, 3, True, 0.0095)
+        
+        # Mildly-risky trend
+        tradeTrend(df, 38, True, 0.00363)
+
+        # Risky trend
+        tradeTrend(df, 5, True, 0.012)
+        tradeTrend(df, 16, True, 0.0082)
+        tradeTrend(df, 18, True, 0.009)
+        tradeTrend(df, 34, True, 0.018)
+        
 
         # # For ticker 8, simple mean reversion (TODO: See if there is a better way)
         # # Increase performance by .1
