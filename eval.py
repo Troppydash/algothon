@@ -3,7 +3,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from khang import getMyPosition as getPosition
+from lead_lag import getMyPosition as getPosition
+import time
 
 nInst = 0
 nt = 0
@@ -36,7 +37,7 @@ def calcPL(prcHist):
     (_, nt) = prcHist.shape
     start = 300
 
-    for t in range(750, 1001):
+    for t in range(600, 781):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]
@@ -73,8 +74,9 @@ def calcPL(prcHist):
     plt.show()
     return (plmu, ret, plstd, annSharpe, totDVolume)
 
-
+start = time.time()
 (meanpl, ret, plstd, sharpe, dvol) = calcPL(prcAll)
+end = time.time()
 score = meanpl - 0.1*plstd
 print("=====")
 print("mean(PL): %.1lf" % meanpl)
@@ -83,3 +85,4 @@ print("StdDev(PL): %.2lf" % plstd)
 print("annSharpe(PL): %.2lf " % sharpe)
 print("totDvolume: %.0lf " % dvol)
 print("Score: %.2lf" % score)
+print("Time:", (end - start)/60)

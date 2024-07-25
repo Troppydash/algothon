@@ -787,33 +787,20 @@ def getMyPosition(prices):
 
     if True:
         # # LEAD LAG TRADE:
-        # predict(currentPos, df, 38, list(range(50)), 1, 1.1)
+        predict(currentPos, df, 38, list(range(50)), 1, 1.1)
 
         # # SINGLE TRADE:
-        # # SAFE TICKERS: Gain positive PL and score on themselves and overall
-
         # Ticker 27: Slow, significant trend. Increase performance by .2
         tradeTrend(df, 27, True, 0.004)
         tradeTrend(df, 2, True, 0.004)
         tradeTrend(df, 3, True, 0.0095)
-        
-        # Mildly-risky trend
-        tradeTrend(df, 38, True, 0.00363)
 
-        # Risky trend
+        # Risky trend - Bumpy trend, so double its gradient
         tradeTrend(df, 5, True, 0.012)
         tradeTrend(df, 16, True, 0.0082)
         tradeTrend(df, 18, True, 0.009)
         tradeTrend(df, 34, True, 0.018)
-        
-
-        # # For ticker 8, simple mean reversion (TODO: See if there is a better way)
-        # # Increase performance by .1
-        # meanRevertGradual(currentPos, prices, 8, 68.537300, 0.585843)
-        
-        # # Ticker 3: Moving average
-        # movingAvg(currentPos, prices, 3, 48.004780, 2.051494, 40, 20, threshold=0.2)
-        
+               
         # All of those hurts performance from 500 - 750
         # # Ticker 6: Confirmed stationary-ish with AD-fuller at 10% sig level
         # # Less risky, higher PL, but with higher Std, so lower score.
