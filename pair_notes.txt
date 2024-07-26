@@ -184,4 +184,18 @@ Trimmed the above to ignore not pair trade (both beta is > 0) and non-stationary
  49: unclear
 
  Lead-lag:
- 7 - 36:
+ Decent = Good trend, magnitude a bit off
+ Good = Trend and magnitude match
+
+ [('31', '10', 286): Good,
+ ('14', '43', 287): Decent,
+ ('43', '22', 286): Decent,
+ ('30', '9', 286): Decent,
+ ('41', '20', 286): Decent,
+ ('20', '49', 287): Decent,
+ ('36', '15', 286): Decent,
+ ('7', '36', 287): Decent,
+ ('13', '42', 287): Decent,
+ ('15', '44', 287): Decent,
+ ('46', '25', 286): Decent,
+ ('35', '14', 286): Decent]
