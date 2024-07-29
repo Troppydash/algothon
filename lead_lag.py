@@ -156,7 +156,7 @@ def getMyPosition(prices):
     df = pd.DataFrame(prices.T, columns=np.arange(50))
     pcf = df.pct_change().dropna()
     for i in range(50):
-        if i in [2, 6, 16, 27, 38, 39, 48]:
+        if i in [2, 6, 16, 27, 38, 39]:
             continue
 
         predict(currentPos, df, pcf, i, list(range(50)), np.array([1, 286, 287, 288]), 1)
