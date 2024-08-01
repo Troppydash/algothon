@@ -135,8 +135,9 @@ def predict(currentPos, df, pct, ticker, indices, lags, deg):
         memo[ticker] = result.params
 
     param = memo[ticker]
-
     predict_mu = np.sum(pct[indices].iloc[lags * -1, :].values.T.flatten() * param[1:]) + param[0]
+
+    
     val = df[ticker].values[-1]
     est = predict_mu
     vol = int(10000 / val)
@@ -149,15 +150,15 @@ def predict(currentPos, df, pct, ticker, indices, lags, deg):
         else:
             currentPos[ticker] = -vol
 
-
+# Actual submitted function
 def getMyPosition(prices):
     global currentPos
 
     df = pd.DataFrame(prices.T, columns=np.arange(50))
     pcf = df.pct_change().dropna()
     for i in range(50):
-        if i in [2, 6, 16, 27, 38, 39]:
-            continue
+        # if i in [2, 6, 16, 27, 38, 39, 48]:
+        #     continue
 
         predict(currentPos, df, pcf, i, list(range(50)), np.array([1, 286, 287, 288]), 1)
 

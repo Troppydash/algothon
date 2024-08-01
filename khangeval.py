@@ -1,8 +1,6 @@
-#!/usr/bin/env python
-
 import numpy as np
 import pandas as pd
-from myteam import getMyPosition as getPosition
+from lead_lag import getMyPosition as getPosition
 import matplotlib.pyplot as plt
 
 nInst = 0
@@ -23,20 +21,18 @@ prcAll = loadPrices(pricesFile)
 print("Loaded %d instruments for %d days" % (nInst, nt))
 
 start = np.random.randint(1, 250)
-start = 500
+start = 250
 ticker = 32
 
 values = []
 prices = []
 volumes = []
 
-# pairs = [(28,39), (11,42),(43,49),(15,20),(1,10),(7,8),(14,30),(22,24),(25,36),(31,40),(33,37),(4,32),(9,46),(13,45),(44,47)]
-pairs = [(11,42),(1,10),(4, 32), (24, 49), (22, 47)]
-# pairs = [(12,34),(12,25),(7,48), (7,19), (28,39), (28,41), (2,11), (11,42), (43,49),(14,30),(22,24)]
-# pairs = [(12,34),(7,48), (28,39), (2,11), (43,49),(14,30),(22,24)]
-cashes = {f"{t1}-{t2}": [0] for t1,t2 in pairs}
-pnls = {f"{t1}-{t2}": [0] for t1,t2 in pairs}
-positions = {f"{t1}-{t2}": [(0,0)] for t1,t2 in pairs}
+tickers = [(i) for i in range(50)]
+
+cashes = {f"{t1}": [0] for t1 in tickers}
+pnls = {f"{t1}": [0] for t1 in tickers}
+positions = {f"{t1}": [0] for t1 in tickers}
 
 def calcPL(prcHist):
     cash = 0
@@ -47,7 +43,7 @@ def calcPL(prcHist):
     value = 0
     todayPLL = []
     (_, nt) = prcHist.shape
-    for t in range(start, 751):
+    for t in range(1000, 1251):
         prcHistSoFar = prcHist[:, :t]
         newPosOrig = getPosition(prcHistSoFar)
         curPrices = prcHistSoFar[:, -1]
@@ -60,17 +56,16 @@ def calcPL(prcHist):
         comm = dvolume * commRate
         cash -= curPrices.dot(deltaPos) + comm
 
-        for pair in pairs:
-            t1, t2 = pair
-            key = f"{t1}-{t2}"
-            dvol = np.sum(curPrices[[t1,t2]] * np.abs(deltaPos[[t1,t2]]))
+        for t1 in tickers:
+            key = f"{t1}"
+            dvol = curPrices[t1] * np.abs(deltaPos[t1])
             comm = dvol * commRate
             assert comm >= 0
-            dcash = comm + curPrices[[t1,t2]].dot(deltaPos[[t1,t2]])
+            dcash = comm + curPrices[t1] * deltaPos[t1]
             cashes[key].append(cashes[key][-1] - dcash)
-            pvalue = newPos[[t1,t2]].dot(curPrices[[t1,t2]])
+            pvalue = newPos[t1] * curPrices[t1]
             pnls[key].append(cashes[key][-1] + pvalue)
-            positions[key].append((newPos[t1], newPos[t2]))
+            positions[key].append((newPos[t1]))
 
         curPos = np.array(newPos)
         posValue = curPos.dot(curPrices)
@@ -107,15 +102,18 @@ print("annSharpe(PL): %.2lf " % sharpe)
 print("totDvolume: %.0lf " % dvol)
 print("Score: %.2lf" % score)
 
-fig, ax = plt.subplots(len(pairs)+1,2, figsize=(20,len(pairs)*4))
+fig, ax = plt.subplots(len(tickers)+1,2, figsize=(20,len(tickers)*4))
 fig.tight_layout()
 ax[0,0].plot(values)
 
-for i,p in enumerate(pairs):
-    t1,t2 = p
-    key = f"{t1}-{t2}"
+for i,t1 in enumerate(tickers):
+    key = f"{t1}"
     ax[i+1,0].title.set_text(key)
     ax[i+1,0].plot(pnls[key], label=key)
     ax[i+1,1].plot(positions[key], label=key)
 
 fig.savefig('out.png')
+
+plt.figure()
+plt.plot(values)
+plt.show()
