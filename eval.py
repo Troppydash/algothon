@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from lead_lag import getMyPosition as getPosition
+from submission import getMyPosition as getPosition
 import time
 
 nInst = 0
